@@ -7,7 +7,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>$(NintendoSdkRoot)Samples\Include;$(NintendoSdkRoot)Externals\imgui;$(NintendoSdkRoot)Externals\glew\include;$(WishboneDbguiShaderDir);$(WishboneGfxShaderDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Source;$(NintendoSdkRoot)Samples\Include;$(NintendoSdkRoot)Externals\imgui;$(NintendoSdkRoot)Externals\glew\include;$(WishboneDbguiShaderDir);$(WishboneGfxShaderDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalDependencies>libnn_gfxUtil$(NintendoSdkLibSuffix);libnn_gll$(NintendoSdkLibSuffix);%(AdditionalDependencies)</AdditionalDependencies>

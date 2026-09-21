@@ -22,7 +22,7 @@
     <ClCompile Include="Source\Main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Development\DebugInput.cpp">
+    <ClCompile Include="Source\App\app_Application.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="$(NintendoSdkRoot)Externals\imgui\imgui.cpp">
@@ -109,12 +109,18 @@
     <ClCompile Include="Source\Dev\dev_DebugInput.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Dev\dev_DebugUi.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Source\Development\DebugInput.hpp">
+    <ClInclude Include="Source\App\app_Application.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Source\Dev\dev_DebugInput.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Dev\dev_DebugUi.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

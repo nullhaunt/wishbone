@@ -34,8 +34,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Main.cpp" />
+    <ClCompile Include="Source\App\app_Application.cpp" />
     <ClCompile Include="Source\Dev\dev_DebugInput.cpp" />
+    <ClCompile Include="Source\Dev\dev_DebugUi.cpp" />
+    <ClInclude Include="Source\App\app_Application.hpp" />
     <ClInclude Include="Source\Dev\dev_DebugInput.hpp" />
+    <ClInclude Include="Source\Dev\dev_DebugUi.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{4C0CF1B4-19CA-C713-BD59-DFD174713218}</ProjectGuid>
