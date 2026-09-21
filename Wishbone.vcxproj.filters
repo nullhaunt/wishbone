@@ -22,5 +22,106 @@
     <ClCompile Include="Source\Main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Development\DebugInput.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(NintendoSdkRoot)Externals\imgui\imgui.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(NintendoSdkRoot)Externals\imgui\imgui_demo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(NintendoSdkRoot)Externals\imgui\imgui_draw.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(NintendoSdkRoot)Externals\imgui\imgui_tables.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(NintendoSdkRoot)Externals\imgui\imgui_widgets.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(NintendoSdkRoot)Externals\imgui\mwinfo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\dbgui\dbgui_Allocator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\dbgui\dbgui_Clipboard.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\dbgui\dbgui_DebugPadMouseEmulation.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\dbgui\dbgui_DefaultUpdateScissorCallbacks.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\dbgui\dbgui_FixedSizeAllocator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\dbgui\dbgui_Helpers-spec.NX.autogen.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\dbgui\dbgui_ImguiIO.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\dbgui\dbgui_Interface.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\dbgui\dbgui_InterfaceInfo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\dbgui\dbgui_Renderer-spec.NX.autogen.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\dbgui\dbgui_UserInputs-spec.NX.autogen.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\dbgui\dbgui_GraphicsFrameworkInteroperability.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\gfx\gfx_ColorBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\gfx\gfx_DepthStencilBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\gfx\gfx_FrameBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\gfx\gfx_GpuBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\gfx\gfx_GraphicsFramework-spec.NX.autogen.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\gfx\gfx_PrimitiveRenderer-spec.NX.autogen.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\gfx\gfx_PrimitiveRendererGfxRes.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\gfx\gfx_PrimitiveRendererMeshRes.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\gfx\gfx_PrimitiveRendererShaderRes.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Dev\dev_DebugInput.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Source\Development\DebugInput.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Dev\dev_DebugInput.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="Application.aarch64.lp64.nmeta" />
+    <CustomBuild Include="NintendoSDK_Application.bmp">
+      <Filter>Resource Files</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>

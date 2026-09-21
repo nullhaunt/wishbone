@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- Build the SDK sample backends locally; do not depend on sample .a/.lib outputs. -->
+  <PropertyGroup>
+    <WishboneDbguiShaderDir>$(NintendoSdkRoot)Samples\Outputs\libnns_dbgui\$(NintendoSdkBuildTarget)\NX\include</WishboneDbguiShaderDir>
+    <WishboneGfxShaderDir>$(NintendoSdkRoot)Samples\Resources\Gfx\NnsGfxShaders\$(NintendoSdkBuildTarget)_Nvn</WishboneGfxShaderDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(NintendoSdkRoot)Samples\Include;$(NintendoSdkRoot)Externals\imgui;$(NintendoSdkRoot)Externals\glew\include;$(WishboneDbguiShaderDir);$(WishboneGfxShaderDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>libnn_gfxUtil$(NintendoSdkLibSuffix);libnn_gll$(NintendoSdkLibSuffix);%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Platform)'=='NX64'">
+    <Link>
+      <AdditionalNSODependencies>glslc.nso;%(AdditionalNSODependencies)</AdditionalNSODependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Platform)'=='x64'">
+    <ClCompile>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;NOMINMAX;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>OpenGL32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="$(NintendoSdkRoot)Externals\imgui\imgui.cpp" />
+    <ClCompile Include="$(NintendoSdkRoot)Externals\imgui\imgui_demo.cpp" />
+    <ClCompile Include="$(NintendoSdkRoot)Externals\imgui\imgui_draw.cpp" />
+    <ClCompile Include="$(NintendoSdkRoot)Externals\imgui\imgui_tables.cpp" />
+    <ClCompile Include="$(NintendoSdkRoot)Externals\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="$(NintendoSdkRoot)Externals\imgui\mwinfo.cpp" />
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\dbgui\dbgui_Allocator.cpp" />
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\dbgui\dbgui_Clipboard.cpp" />
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\dbgui\dbgui_DebugPadMouseEmulation.cpp" />
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\dbgui\dbgui_DefaultUpdateScissorCallbacks.cpp" />
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\dbgui\dbgui_FixedSizeAllocator.cpp" />
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\dbgui\dbgui_Helpers-spec.NX.autogen.cpp" />
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\dbgui\dbgui_ImguiIO.cpp" />
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\dbgui\dbgui_Interface.cpp" />
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\dbgui\dbgui_InterfaceInfo.cpp" />
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\dbgui\dbgui_Renderer-spec.NX.autogen.cpp" />
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\dbgui\dbgui_UserInputs-spec.NX.autogen.cpp" />
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\dbgui\dbgui_GraphicsFrameworkInteroperability.cpp" />
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\gfx\gfx_ColorBuffer.cpp" />
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\gfx\gfx_DepthStencilBuffer.cpp" />
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\gfx\gfx_FrameBuffer.cpp" />
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\gfx\gfx_GpuBuffer.cpp" />
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\gfx\gfx_GraphicsFramework-spec.NX.autogen.cpp" />
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\gfx\gfx_PrimitiveRenderer-spec.NX.autogen.cpp" />
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\gfx\gfx_PrimitiveRendererGfxRes.cpp" />
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\gfx\gfx_PrimitiveRendererMeshRes.cpp" />
+    <ClCompile Include="$(NintendoSdkRoot)Samples\Sources\Libraries\gfx\gfx_PrimitiveRendererShaderRes.cpp" />
+  </ItemGroup>
+  <Target Name="CheckWishboneDebugUiSdk" BeforeTargets="PrepareForBuild">
+    <Error Condition="!Exists('$(WishboneDbguiShaderDir)\dbgui_BuiltinImguiShader.h')" Text="The SDK ImGui shader header is missing: $(WishboneDbguiShaderDir)\dbgui_BuiltinImguiShader.h" />
+    <Error Condition="!Exists('$(WishboneGfxShaderDir)\PrimitiveRenderer_BuildinShader.h')" Text="The SDK graphics shader header is missing: $(WishboneGfxShaderDir)\PrimitiveRenderer_BuildinShader.h" />
+  </Target>
+  <Target Name="CopyWishboneNvnLoader" AfterTargets="Build" Condition="'$(Platform)'=='x64'">
+    <Copy SourceFiles="$(NintendoSdkRoot)Tools\Graphics\NvnLoader\nvn.dll" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+  </Target>
+</Project>
