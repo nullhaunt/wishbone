@@ -1,6 +1,7 @@
 #include "App/app_Application.hpp"
 
 #include "Dev/dev_DebugUi.hpp"
+#include "Mii/mii_Catalog.hpp"
 
 #include <nn/nn_Log.h>
 #include <nns/gfx/gfx_GraphicsFramework.h>
@@ -63,6 +64,7 @@ namespace wishbone::app
         NN_LOG( "[Wishbone] Initializing NVN development UI.\n" );
 
         InitializeGraphics( m_Graphics );
+        m_MiiCatalog.Initialize();
         m_DebugUi.Initialize( m_Graphics );
 
         m_Graphics.SetCalculateCallback( Calculate, this );
@@ -79,6 +81,7 @@ namespace wishbone::app
         // The final frame still references the UI's GPU buffers and descriptors.
         m_Graphics.QueueFinish();
         m_DebugUi.Finalize( m_Graphics );
+        m_MiiCatalog.Finalize();
         m_Graphics.Finalize();
 
         NN_LOG( "[Wishbone] Development UI shut down.\n" );
@@ -88,7 +91,7 @@ namespace wishbone::app
       static void Calculate( nns::gfx::GraphicsFramework *, void * userData )
       {
         auto & application = *static_cast<Application *>( userData );
-        application.m_DebugUi.BuildFrame();
+        application.m_DebugUi.BuildFrame( application.m_MiiCatalog );
       }
 
       static void Render( nns::gfx::GraphicsFramework * graphics, int bufferIndex, void * userData )
@@ -111,6 +114,7 @@ namespace wishbone::app
       }
 
       nns::gfx::GraphicsFramework m_Graphics;
+      mii::Catalog                m_MiiCatalog;
       dev::DebugUi                m_DebugUi;
     };
   } // namespace

@@ -37,9 +37,13 @@
     <ClCompile Include="Source\App\app_Application.cpp" />
     <ClCompile Include="Source\Dev\dev_DebugInput.cpp" />
     <ClCompile Include="Source\Dev\dev_DebugUi.cpp" />
+    <ClCompile Include="Source\Dev\dev_MiiLab.cpp" />
+    <ClCompile Include="Source\Mii\mii_Catalog.cpp" />
     <ClInclude Include="Source\App\app_Application.hpp" />
     <ClInclude Include="Source\Dev\dev_DebugInput.hpp" />
     <ClInclude Include="Source\Dev\dev_DebugUi.hpp" />
+    <ClInclude Include="Source\Dev\dev_MiiLab.hpp" />
+    <ClInclude Include="Source\Mii\mii_Catalog.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{4C0CF1B4-19CA-C713-BD59-DFD174713218}</ProjectGuid>

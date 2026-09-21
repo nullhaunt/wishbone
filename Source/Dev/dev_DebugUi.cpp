@@ -1,5 +1,7 @@
 #include "dev_DebugUi.hpp"
 
+#include "Mii/mii_Catalog.hpp"
+
 #include <imgui.h>
 
 #include <nn/nn_Log.h>
@@ -37,10 +39,11 @@ namespace wishbone::dev
     m_InputStatus = UpdateDebugInput( layer );
   }
 
-  void DebugUi::BuildFrame()
+  void DebugUi::BuildFrame( wishbone::mii::Catalog & miiCatalog )
   {
     nns::dbgui::NewFrame();
     BuildDevelopmentPanel();
+    m_MiiLab.Build( miiCatalog );
 
     if ( m_ShowDemo )
     {
@@ -56,7 +59,6 @@ namespace wishbone::dev
 
   void DebugUi::BuildDevelopmentPanel()
   {
-
     ImGui::SetNextWindowPos( ImVec2( 24, 24 ), ImGuiCond_FirstUseEver );
     ImGui::SetNextWindowSize( ImVec2( 570, 600 ), ImGuiCond_FirstUseEver );
 
@@ -91,6 +93,13 @@ namespace wishbone::dev
       ImGui::SliderInt( "Test value", &m_TestValue, 0, 100 );
       ImGui::InputText( "Text input", m_Text, sizeof( m_Text ) );
       ImGui::ColorEdit3( "Background", m_ClearColor );
+
+      bool showMiiLab = m_MiiLab.IsVisible();
+
+      if ( ImGui::Checkbox( "Mii Lab", &showMiiLab ) )
+      {
+        m_MiiLab.SetVisible( showMiiLab );
+      }
 
       ImGui::Checkbox( "ImGui demo", &m_ShowDemo );
       ImGui::Checkbox( "ImGui metrics", &m_ShowMetrics );

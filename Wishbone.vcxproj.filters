@@ -112,6 +112,12 @@
     <ClCompile Include="Source\Dev\dev_DebugUi.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Dev\dev_MiiLab.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Mii\mii_Catalog.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\App\app_Application.hpp">
@@ -121,6 +127,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Source\Dev\dev_DebugUi.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Dev\dev_MiiLab.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Mii\mii_Catalog.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

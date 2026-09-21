@@ -1,6 +1,7 @@
 #pragma once
 
 #include "dev_DebugInput.hpp"
+#include "dev_MiiLab.hpp"
 
 #include <nns/dbgui/dbgui_GraphicsFrameworkInteroperability.h>
 
@@ -14,6 +15,11 @@ namespace nns::gfx
   class GraphicsFramework;
 }
 
+namespace wishbone::mii
+{
+  class Catalog;
+}
+
 namespace wishbone::dev
 {
   class DebugUi
@@ -23,7 +29,7 @@ namespace wishbone::dev
     void Finalize( nns::gfx::GraphicsFramework & graphics );
 
     void UpdateInput( nn::vi::Layer * layer );
-    void BuildFrame();
+    void BuildFrame( wishbone::mii::Catalog & miiCatalog );
     void Render( nn::gfx::CommandBuffer * commands );
 
     const float * GetClearColor() const;
@@ -34,6 +40,7 @@ namespace wishbone::dev
 
     nns::dbgui::GraphicsFrameworkInteroperabilityData m_Interoperability = {};
     DebugInputStatus                                  m_InputStatus;
+    MiiLab                                            m_MiiLab;
     bool                                              m_ExitRequested   = false;
     bool                                              m_ShowDemo        = false;
     bool                                              m_ShowMetrics     = false;
