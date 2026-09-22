@@ -5,6 +5,7 @@
 #include "Mii/mii_FixedModelRenderer.hpp"
 #include "Mii/mii_RenderResources.hpp"
 
+#include <nn/nn_Assert.h>
 #include <nn/nn_Log.h>
 #include <nns/gfx/gfx_GraphicsFramework.h>
 
@@ -65,6 +66,11 @@ namespace wishbone::app
     class Application
     {
     public:
+      ~Application()
+      {
+        Shutdown();
+      }
+
       void Run()
       {
         NN_LOG( "[Wishbone] Initializing NVN development UI.\n" );
@@ -81,6 +87,7 @@ namespace wishbone::app
         }
 
         m_DebugUi.Initialize( m_Graphics );
+        m_IsDebugUiInitialized = true;
 
         m_Graphics.SetCalculateCallback( Calculate, this );
         m_Graphics.SetMakeCommandCallback( Render, this );
@@ -107,18 +114,36 @@ namespace wishbone::app
           }
         }
 
-        // The final frame still references the UI's GPU buffers and descriptors.
+      }
+
+    private:
+      void Shutdown()
+      {
+        if ( !m_Graphics.IsInitialized() )
+        {
+          return;
+        }
+
+        // Submitted frames can still reference UI and Mii GPU resources.
         m_Graphics.QueueFinish();
-        m_DebugUi.Finalize( m_Graphics );
+
+        if ( m_IsDebugUiInitialized )
+        {
+          m_DebugUi.Finalize( m_Graphics );
+          m_IsDebugUiInitialized = false;
+        }
+
         m_FixedModelRenderer.Finalize();
         m_MiiCatalog.Finalize();
         m_MiiRenderResources.Finalize();
+
+        NN_SDK_ASSERT( !m_MiiRenderResources.IsReady() );
+
         m_Graphics.Finalize();
 
         NN_LOG( "[Wishbone] Development UI shut down.\n" );
       }
 
-    private:
       static void Calculate( nns::gfx::GraphicsFramework *, void * userData )
       {
         auto & application = *static_cast<Application *>( userData );
@@ -156,6 +181,7 @@ namespace wishbone::app
       mii::FixedModelRenderer     m_FixedModelRenderer;
       dev::DebugUi                m_DebugUi;
       int                         m_RenderedMii = -1;
+      bool                        m_IsDebugUiInitialized = false;
     };
   } // namespace
 

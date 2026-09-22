@@ -50,6 +50,8 @@ namespace wishbone::mii
 
   RenderResources::~RenderResources()
   {
+    Finalize();
+
     NN_SDK_ASSERT( !m_Resource.IsInitialized() );
     NN_SDK_ASSERT( m_TextureData == nullptr );
     NN_SDK_ASSERT( m_ShapeData == nullptr );
