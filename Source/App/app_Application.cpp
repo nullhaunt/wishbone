@@ -77,6 +77,7 @@ namespace wishbone::app
         {
           m_FixedModelRenderer.Initialize(
             m_Graphics, m_MiiRenderResources, m_MiiCatalog.GetEntry( 0 ).m_CharInfo );
+          m_RenderedMii = 0;
         }
 
         m_DebugUi.Initialize( m_Graphics );
@@ -90,6 +91,20 @@ namespace wishbone::app
         {
           m_DebugUi.UpdateInput( m_Graphics.GetLayer() );
           m_Graphics.ProcessFrame();
+
+          const int selectedMii = m_DebugUi.GetSelectedMii();
+
+          if ( !m_DebugUi.IsExitRequested()
+            && selectedMii != m_RenderedMii
+            && selectedMii >= 0
+            && selectedMii < m_MiiCatalog.GetCount() )
+          {
+            // The submitted frame can still reference the old model's buffers.
+            m_Graphics.QueueFinish();
+            m_FixedModelRenderer.Initialize(
+              m_Graphics, m_MiiRenderResources, m_MiiCatalog.GetEntry( selectedMii ).m_CharInfo );
+            m_RenderedMii = selectedMii;
+          }
         }
 
         // The final frame still references the UI's GPU buffers and descriptors.
@@ -140,6 +155,7 @@ namespace wishbone::app
       mii::Catalog                m_MiiCatalog;
       mii::FixedModelRenderer     m_FixedModelRenderer;
       dev::DebugUi                m_DebugUi;
+      int                         m_RenderedMii = -1;
     };
   } // namespace
 

@@ -63,7 +63,7 @@ namespace wishbone::dev
       if ( fixedModelRenderer.IsReady() )
       {
         ImGui::TextColored( ImVec4( 0.35f, 0.9f, 0.45f, 1.0f ), "Fixed Mii renderer: ready" );
-        ImGui::TextDisabled( "Rendering catalog entry 0 with the normal expression." );
+        ImGui::TextDisabled( "Rendering the selected entry with the normal expression." );
       }
       else if ( !fixedModelRenderer.IsSupported() )
       {
@@ -192,5 +192,10 @@ namespace wishbone::dev
   void MiiLab::SetVisible( bool visible )
   {
     m_IsVisible = visible;
+  }
+
+  int MiiLab::GetSelectedMii() const
+  {
+    return m_SelectedMii;
   }
 } // namespace wishbone::dev

@@ -38,6 +38,7 @@ namespace wishbone::dev
 
     const float * GetClearColor() const;
     bool          IsExitRequested() const;
+    int           GetSelectedMii() const;
 
   private:
     void BuildDevelopmentPanel();

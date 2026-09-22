@@ -18,6 +18,7 @@ namespace wishbone::dev
 
     bool IsVisible() const;
     void SetVisible( bool visible );
+    int  GetSelectedMii() const;
 
   private:
     bool m_IsVisible   = false;

@@ -139,4 +139,9 @@ namespace wishbone::dev
   {
     return m_ExitRequested;
   }
+
+  int DebugUi::GetSelectedMii() const
+  {
+    return m_MiiLab.GetSelectedMii();
+  }
 } // namespace wishbone::dev

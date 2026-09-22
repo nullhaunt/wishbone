@@ -75,9 +75,8 @@ For the fixed-Mii checkpoint:
 1. Confirm a Mii head appears behind the development UI with correct hair,
    skin, eyes, mouth, and facial details.
 2. Open **Mii Lab** and confirm `Fixed Mii renderer: ready`.
-3. Confirm the rendered Mii is catalog entry 0 and remains on the normal
-   expression while selecting other browser rows. Browser-to-renderer wiring is
-   intentionally reserved for the next commit.
+3. Select several system and default rows and confirm the rendered head changes
+   to the selected Mii. The preview currently uses the normal expression.
 4. Change the background color and look for missing transparency, incorrect
    draw order, or depth artifacts around hair, glasses, and facial features.
 5. Exit normally and confirm there is no graphics or allocator assertion.
