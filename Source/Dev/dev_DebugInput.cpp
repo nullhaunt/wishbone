@@ -1,4 +1,4 @@
-#include "dev_DebugInput.hpp"
+#include "Dev/dev_DebugInput.hpp"
 
 #include <nn/hid.h>
 #include <nn/vi.h>

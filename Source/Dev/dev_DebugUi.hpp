@@ -1,7 +1,7 @@
 #pragma once
 
-#include "dev_DebugInput.hpp"
-#include "dev_MiiLab.hpp"
+#include "Dev/dev_DebugInput.hpp"
+#include "Dev/dev_MiiLab.hpp"
 
 #include <nns/dbgui/dbgui_GraphicsFrameworkInteroperability.h>
 
@@ -18,7 +18,8 @@ namespace nns::gfx
 namespace wishbone::mii
 {
   class Catalog;
-}
+  class RenderResources;
+} // namespace wishbone::mii
 
 namespace wishbone::dev
 {
@@ -29,7 +30,7 @@ namespace wishbone::dev
     void Finalize( nns::gfx::GraphicsFramework & graphics );
 
     void UpdateInput( nn::vi::Layer * layer );
-    void BuildFrame( wishbone::mii::Catalog & miiCatalog );
+    void BuildFrame( wishbone::mii::Catalog & catalog, const wishbone::mii::RenderResources & renderResources );
     void Render( nn::gfx::CommandBuffer * commands );
 
     const float * GetClearColor() const;

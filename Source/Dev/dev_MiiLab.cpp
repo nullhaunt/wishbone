@@ -1,6 +1,7 @@
-#include "dev_MiiLab.hpp"
+#include "Dev/dev_MiiLab.hpp"
 
 #include "Mii/mii_Catalog.hpp"
+#include "Mii/mii_RenderResources.hpp"
 
 #include <imgui.h>
 
@@ -8,7 +9,7 @@
 
 namespace wishbone::dev
 {
-  void MiiLab::Build( wishbone::mii::Catalog & catalog )
+  void MiiLab::Build( wishbone::mii::Catalog & catalog, const wishbone::mii::RenderResources & renderResources )
   {
     if ( !m_IsVisible )
     {
@@ -21,6 +22,39 @@ namespace wishbone::dev
     if ( ImGui::Begin( "Wishbone | Mii Lab", &m_IsVisible ) )
     {
       ImGui::TextUnformatted( "Read-only system Mii browser" );
+      ImGui::Separator();
+
+      if ( renderResources.IsReady() )
+      {
+        constexpr float BytesPerMebibyte = 1024.0f * 1024.0f;
+
+        ImGui::TextColored( ImVec4( 0.35f, 0.9f, 0.45f, 1.0f ), "Rendering resources: ready" );
+        ImGui::Text( "Middle shape / Low texture / sRGB | %.2f MiB total",
+                     ( renderResources.GetTextureDataSize() + renderResources.GetShapeDataSize() +
+                       renderResources.GetWorkingMemorySize() ) /
+                       BytesPerMebibyte );
+      }
+      else if ( !renderResources.IsSupported() )
+      {
+        ImGui::TextDisabled( "Rendering resources: NX hardware only" );
+      }
+      else if ( renderResources.HasError() )
+      {
+        ImGui::TextColored( ImVec4( 1.0f, 0.35f, 0.3f, 1.0f ), "Rendering resources: failed" );
+
+        if ( renderResources.HasResultCode() )
+        {
+          ImGui::TextWrapped( "%s failed (%d-%d)",
+                              renderResources.GetErrorOperation(),
+                              renderResources.GetErrorModule(),
+                              renderResources.GetErrorDescription() );
+        }
+        else
+        {
+          ImGui::TextWrapped( "%s failed.", renderResources.GetErrorOperation() );
+        }
+      }
+
       ImGui::Separator();
 
       if ( !catalog.IsAvailable() )

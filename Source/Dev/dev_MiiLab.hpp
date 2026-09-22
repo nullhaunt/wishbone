@@ -3,14 +3,15 @@
 namespace wishbone::mii
 {
   class Catalog;
-}
+  class RenderResources;
+} // namespace wishbone::mii
 
 namespace wishbone::dev
 {
   class MiiLab
   {
   public:
-    void Build( wishbone::mii::Catalog & catalog );
+    void Build( wishbone::mii::Catalog & catalog, const wishbone::mii::RenderResources & renderResources );
 
     bool IsVisible() const;
     void SetVisible( bool visible );

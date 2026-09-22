@@ -1,6 +1,7 @@
-#include "dev_DebugUi.hpp"
+#include "Dev/dev_DebugUi.hpp"
 
 #include "Mii/mii_Catalog.hpp"
+#include "Mii/mii_RenderResources.hpp"
 
 #include <imgui.h>
 
@@ -39,11 +40,11 @@ namespace wishbone::dev
     m_InputStatus = UpdateDebugInput( layer );
   }
 
-  void DebugUi::BuildFrame( wishbone::mii::Catalog & miiCatalog )
+  void DebugUi::BuildFrame( wishbone::mii::Catalog & catalog, const wishbone::mii::RenderResources & renderResources )
   {
     nns::dbgui::NewFrame();
     BuildDevelopmentPanel();
-    m_MiiLab.Build( miiCatalog );
+    m_MiiLab.Build( catalog, renderResources );
 
     if ( m_ShowDemo )
     {
