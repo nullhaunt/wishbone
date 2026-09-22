@@ -144,4 +144,9 @@ namespace wishbone::dev
   {
     return m_MiiLab.GetSelectedMii();
   }
+
+  nn::mii::Expression DebugUi::GetSelectedExpression() const
+  {
+    return m_MiiLab.GetSelectedExpression();
+  }
 } // namespace wishbone::dev

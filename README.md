@@ -4,8 +4,8 @@ The development harness uses the official Nintendo SDK 18.3.1 NVN backend and
 its bundled Dear ImGui 1.87. It provides a small input test panel, a read-only
 system Mii browser, and a fixed-model rendering checkpoint. The renderer builds
 the first valid catalog entry with the SDK Mii draw library, generates its
-faceline and normal-expression mask, and draws the model with depth before the
-development UI.
+faceline and all 19 SDK expression masks, and draws the model with depth before
+the development UI.
 
 ## Build
 
@@ -76,10 +76,13 @@ For the fixed-Mii checkpoint:
    skin, eyes, mouth, and facial details.
 2. Open **Mii Lab** and confirm `Fixed Mii renderer: ready`.
 3. Select several system and default rows and confirm the rendered head changes
-   to the selected Mii. The preview currently uses the normal expression.
-4. Change the background color and look for missing transparency, incorrect
+   to the selected Mii.
+4. Cycle all entries in the **Expression** combo and confirm the eyes, eyebrows,
+   and mouth match the label. Expression changes should be immediate and should
+   not rebuild the selected Mii; changing Miis should preserve the expression.
+5. Change the background color and look for missing transparency, incorrect
    draw order, or depth artifacts around hair, glasses, and facial features.
-5. Exit normally and confirm there is no graphics or allocator assertion.
+6. Exit normally and confirm there is no graphics or allocator assertion.
 
 Startup reports `[Wishbone] ImGui ready.`; normal exit reports
 `[Wishbone] Development UI shut down.` in logging-enabled configurations.

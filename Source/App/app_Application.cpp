@@ -45,7 +45,7 @@ namespace wishbone::app
       info.SetMemoryPoolSize( Framework::MemoryPoolType_RenderTarget, 32 * 1024 * 1024 );
       info.SetMemoryPoolSize( Framework::MemoryPoolType_ConstantBuffer, 32 * 1024 * 1024 );
       info.SetMemoryPoolSize( Framework::MemoryPoolType_Data, 32 * 1024 * 1024 );
-      info.SetMemoryPoolSize( Framework::MemoryPoolType_Others, 32 * 1024 * 1024 );
+      info.SetMemoryPoolSize( Framework::MemoryPoolType_Others, 64 * 1024 * 1024 );
 
       info.SetDescriptorPoolSlotCount( nn::gfx::DescriptorPoolType_BufferView, 16 );
       info.SetDescriptorPoolSlotCount( nn::gfx::DescriptorPoolType_TextureView, 1024 );
@@ -81,8 +81,7 @@ namespace wishbone::app
 
         if ( m_MiiCatalog.GetCount() > 0 )
         {
-          m_FixedModelRenderer.Initialize(
-            m_Graphics, m_MiiRenderResources, m_MiiCatalog.GetEntry( 0 ).m_CharInfo );
+          m_FixedModelRenderer.Initialize( m_Graphics, m_MiiRenderResources, m_MiiCatalog.GetEntry( 0 ).m_CharInfo );
           m_RenderedMii = 0;
         }
 
@@ -99,12 +98,11 @@ namespace wishbone::app
           m_DebugUi.UpdateInput( m_Graphics.GetLayer() );
           m_Graphics.ProcessFrame();
 
-          const int selectedMii = m_DebugUi.GetSelectedMii();
+          const int                 selectedMii        = m_DebugUi.GetSelectedMii();
+          const nn::mii::Expression selectedExpression = m_DebugUi.GetSelectedExpression();
 
-          if ( !m_DebugUi.IsExitRequested()
-            && selectedMii != m_RenderedMii
-            && selectedMii >= 0
-            && selectedMii < m_MiiCatalog.GetCount() )
+          if ( !m_DebugUi.IsExitRequested() && selectedMii != m_RenderedMii && selectedMii >= 0 &&
+               selectedMii < m_MiiCatalog.GetCount() )
           {
             // The submitted frame can still reference the old model's buffers.
             m_Graphics.QueueFinish();
@@ -112,8 +110,9 @@ namespace wishbone::app
               m_Graphics, m_MiiRenderResources, m_MiiCatalog.GetEntry( selectedMii ).m_CharInfo );
             m_RenderedMii = selectedMii;
           }
-        }
 
+          m_FixedModelRenderer.SetExpression( selectedExpression );
+        }
       }
 
     private:
@@ -163,8 +162,7 @@ namespace wishbone::app
         const auto * clearColor = application.m_DebugUi.GetClearColor();
 
         commands->ClearColor( target, clearColor[ 0 ], clearColor[ 1 ], clearColor[ 2 ], 1.0f, nullptr );
-        commands->ClearDepthStencil(
-          depth, 1.0f, 0, nn::gfx::DepthStencilClearMode_DepthStencil, nullptr );
+        commands->ClearDepthStencil( depth, 1.0f, 0, nn::gfx::DepthStencilClearMode_DepthStencil, nullptr );
         commands->SetRenderTargets( 1, &target, depth );
 
         application.m_FixedModelRenderer.Draw( commands );
@@ -180,7 +178,7 @@ namespace wishbone::app
       mii::Catalog                m_MiiCatalog;
       mii::FixedModelRenderer     m_FixedModelRenderer;
       dev::DebugUi                m_DebugUi;
-      int                         m_RenderedMii = -1;
+      int                         m_RenderedMii          = -1;
       bool                        m_IsDebugUiInitialized = false;
     };
   } // namespace

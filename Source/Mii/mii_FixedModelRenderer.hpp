@@ -22,15 +22,20 @@ namespace wishbone::mii
     FixedModelRenderer & operator=( const FixedModelRenderer & ) = delete;
 
     bool Initialize( nns::gfx::GraphicsFramework & graphics,
-                     const RenderResources &        resources,
-                     const nn::mii::CharInfo &      charInfo );
+                     const RenderResources &       resources,
+                     const nn::mii::CharInfo &     charInfo );
     void Finalize();
     void Draw( nn::gfx::CommandBuffer * commands );
+
+    bool SetExpression( nn::mii::Expression expression );
 
     bool IsSupported() const;
     bool IsReady() const;
     bool HasError() const;
     bool HasResultCode() const;
+
+    nn::mii::Expression GetExpression() const;
+    int                 GetExpressionMaskSlot() const;
 
     const char * GetErrorOperation() const;
     int          GetErrorModule() const;

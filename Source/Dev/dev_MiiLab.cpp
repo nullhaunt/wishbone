@@ -10,6 +10,29 @@
 
 namespace wishbone::dev
 {
+  namespace
+  {
+    constexpr const char * ExpressionNames[ nn::mii::Expression_End ] = { "Normal",
+                                                                          "Smile",
+                                                                          "Anger",
+                                                                          "Sorrow",
+                                                                          "Surprise",
+                                                                          "Blink",
+                                                                          "Open mouth",
+                                                                          "Smile + open mouth",
+                                                                          "Anger + open mouth",
+                                                                          "Sorrow + open mouth",
+                                                                          "Surprise + open mouth",
+                                                                          "Blink + open mouth",
+                                                                          "Wink left",
+                                                                          "Wink right",
+                                                                          "Wink left + open mouth",
+                                                                          "Wink right + open mouth",
+                                                                          "Like wink left",
+                                                                          "Like wink right",
+                                                                          "Frustrated" };
+  } // namespace
+
   void MiiLab::Build( wishbone::mii::Catalog &                  catalog,
                       const wishbone::mii::RenderResources &    renderResources,
                       const wishbone::mii::FixedModelRenderer & fixedModelRenderer )
@@ -63,7 +86,9 @@ namespace wishbone::dev
       if ( fixedModelRenderer.IsReady() )
       {
         ImGui::TextColored( ImVec4( 0.35f, 0.9f, 0.45f, 1.0f ), "Fixed Mii renderer: ready" );
-        ImGui::TextDisabled( "Rendering the selected entry with the normal expression." );
+        ImGui::TextDisabled( "Expression: %s | mask slot: %d",
+                             ExpressionNames[ static_cast<int>( fixedModelRenderer.GetExpression() ) ],
+                             fixedModelRenderer.GetExpressionMaskSlot() );
       }
       else if ( !fixedModelRenderer.IsSupported() )
       {
@@ -85,6 +110,9 @@ namespace wishbone::dev
           ImGui::TextWrapped( "%s failed.", fixedModelRenderer.GetErrorOperation() );
         }
       }
+
+      ImGui::SetNextItemWidth( 280.0f );
+      ImGui::Combo( "Expression", &m_SelectedExpression, ExpressionNames, static_cast<int>( nn::mii::Expression_End ) );
 
       ImGui::Separator();
 
@@ -197,5 +225,10 @@ namespace wishbone::dev
   int MiiLab::GetSelectedMii() const
   {
     return m_SelectedMii;
+  }
+
+  nn::mii::Expression MiiLab::GetSelectedExpression() const
+  {
+    return static_cast<nn::mii::Expression>( m_SelectedExpression );
   }
 } // namespace wishbone::dev

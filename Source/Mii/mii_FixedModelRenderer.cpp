@@ -21,7 +21,7 @@ namespace wishbone::mii
   {
     constexpr size_t TextureResolution = 512;
     constexpr int    TextureMipCount   = 1;
-    constexpr int    ExpressionFlags   = nn::mii::ExpressionFlag_Normal;
+    constexpr int    ExpressionFlags   = nn::mii::ExpressionFlag_All;
     constexpr int    TextureSlotCount  = 64;
     constexpr bool   IsVerticalFlip    = true;
 
@@ -62,6 +62,51 @@ namespace wishbone::mii
 
       return nn::gfx::ShaderCodeType_End;
     }
+
+    nn::mii::Expression GetExpressionForMaskSlot( int maskSlot )
+    {
+      int currentSlot = 0;
+
+      for ( int i = 0; i < nn::mii::Expression_End; ++i )
+      {
+        if ( ( ExpressionFlags & ( 1 << i ) ) == 0 )
+        {
+          continue;
+        }
+
+        if ( currentSlot == maskSlot )
+        {
+          return static_cast<nn::mii::Expression>( i );
+        }
+
+        ++currentSlot;
+      }
+
+      NN_SDK_ASSERT( false );
+      return nn::mii::Expression_Normal;
+    }
+
+    int GetMaskSlotForExpression( nn::mii::Expression expression )
+    {
+      int currentSlot = 0;
+
+      for ( int i = 0; i < nn::mii::Expression_End; ++i )
+      {
+        if ( ( ExpressionFlags & ( 1 << i ) ) == 0 )
+        {
+          continue;
+        }
+
+        if ( i == static_cast<int>( expression ) )
+        {
+          return currentSlot;
+        }
+
+        ++currentSlot;
+      }
+
+      return -1;
+    }
   } // namespace
 
   struct FixedModelRenderer::Impl
@@ -77,36 +122,36 @@ namespace wishbone::mii
 
     struct ShaderResource
     {
-      void *                      memory   = nullptr;
-      nn::gfx::ResShaderFile *    file     = nullptr;
-      nn::gfx::ShaderCodeType     codeType = nn::gfx::ShaderCodeType_End;
-      bool                        initialized = false;
+      void *                   memory      = nullptr;
+      nn::gfx::ResShaderFile * file        = nullptr;
+      nn::gfx::ShaderCodeType  codeType    = nn::gfx::ShaderCodeType_End;
+      bool                     initialized = false;
     };
 
-    Framework *     graphics = nullptr;
-    nn::gfx::Device * device  = nullptr;
+    Framework *       graphics = nullptr;
+    nn::gfx::Device * device   = nullptr;
 
-    nn::mii::CharModel          charModel;
-    nn::mii::Faceline           faceline;
-    nn::mii::Mask               mask;
-    nn::mii::FacelineGpuBuffer  facelineGpuBuffer;
-    nn::mii::MaskGpuBuffer      maskGpuBuffer;
-    nn::mii::TextureShader      textureShader;
-    nn::mii::TextureShaderInfo  textureShaderInfo;
+    nn::mii::CharModel         charModel;
+    nn::mii::Faceline          faceline;
+    nn::mii::Mask              mask;
+    nn::mii::FacelineGpuBuffer facelineGpuBuffer;
+    nn::mii::MaskGpuBuffer     maskGpuBuffer;
+    nn::mii::TextureShader     textureShader;
+    nn::mii::TextureShaderInfo textureShaderInfo;
 
-    nn::gfx::Sampler           sampler;
-    nn::gfx::DescriptorSlot    samplerSlot;
-    int                        samplerSlotIndex = -1;
-    int                        textureSlotIndex = -1;
-    int                        usedTextureSlots = 0;
+    nn::gfx::Sampler        sampler;
+    nn::gfx::DescriptorSlot samplerSlot;
+    int                     samplerSlotIndex = -1;
+    int                     textureSlotIndex = -1;
+    int                     usedTextureSlots = 0;
 
     ShaderResource textureShaderResource;
     ShaderResource modelShaderResource;
 
-    nn::gfx::RasterizerState  rasterizerStates[ nn::gfx::CullMode_End ];
-    nn::gfx::BlendState       blendStates[ DrawMode_Count ];
+    nn::gfx::RasterizerState   rasterizerStates[ nn::gfx::CullMode_End ];
+    nn::gfx::BlendState        blendStates[ DrawMode_Count ];
     nn::gfx::DepthStencilState depthStates[ DrawMode_Count ];
-    nn::gfx::VertexState      vertexState;
+    nn::gfx::VertexState       vertexState;
 
     void * blendStateMemory[ DrawMode_Count ] = {};
     void * vertexStateMemory                  = nullptr;
@@ -120,7 +165,7 @@ namespace wishbone::mii
     nn::gfx::Buffer modulateBuffers[ nn::mii::CharModel::DrawType_End ];
     ptrdiff_t       matrixBufferOffset = -1;
     ptrdiff_t       modulateBufferOffsets[ nn::mii::CharModel::DrawType_End ];
-    int             modulateBufferCount = 0;
+    int             modulateBufferCount     = 0;
     bool            matrixBufferInitialized = false;
 
     void * textureShaderMemory = nullptr;
@@ -137,10 +182,13 @@ namespace wishbone::mii
     ptrdiff_t facelineGpuPoolOffset = -1;
     ptrdiff_t maskGpuPoolOffset     = -1;
 
-    int  matrixSlot   = -1;
-    int  modulateSlot = -1;
+    int  matrixSlot        = -1;
+    int  modulateSlot      = -1;
     int  samplerShaderSlot = -1;
-    bool ready = false;
+    int  activeMaskSlot    = 0;
+    bool ready             = false;
+
+    nn::mii::Expression activeExpression = nn::mii::Expression_Normal;
 
     const char * errorOperation   = nullptr;
     int          errorModule      = 0;
@@ -190,7 +238,7 @@ namespace wishbone::mii
     bool LoadShaderResource( ShaderResource * resource, const char * path )
     {
       nn::fs::FileHandle handle;
-      nn::Result result = nn::fs::OpenFile( &handle, path, nn::fs::OpenMode_Read );
+      nn::Result         result = nn::fs::OpenFile( &handle, path, nn::fs::OpenMode_Read );
 
       if ( result.IsFailure() )
       {
@@ -199,7 +247,7 @@ namespace wishbone::mii
       }
 
       int64_t fileSize = 0;
-      result = nn::fs::GetFileSize( &fileSize, handle );
+      result           = nn::fs::GetFileSize( &fileSize, handle );
 
       if ( result.IsFailure() )
       {
@@ -209,7 +257,7 @@ namespace wishbone::mii
       }
 
       nn::util::BinaryFileHeader header = {};
-      result = nn::fs::ReadFile( handle, 0, &header, sizeof( header ) );
+      result                            = nn::fs::ReadFile( handle, 0, &header, sizeof( header ) );
 
       if ( result.IsFailure() )
       {
@@ -244,7 +292,7 @@ namespace wishbone::mii
       }
 
       nn::gfx::ResShaderContainer * container = resource->file->GetShaderContainer();
-      resource->codeType = FindShaderCodeType( *container );
+      resource->codeType                      = FindShaderCodeType( *container );
 
       if ( resource->codeType == nn::gfx::ShaderCodeType_End )
       {
@@ -294,8 +342,8 @@ namespace wishbone::mii
 
     bool LoadShaders()
     {
-      size_t cacheSize = 0;
-      nn::Result result = nn::fs::QueryMountRomCacheSize( &cacheSize );
+      size_t     cacheSize = 0;
+      nn::Result result    = nn::fs::QueryMountRomCacheSize( &cacheSize );
 
       if ( result.IsFailure() )
       {
@@ -320,8 +368,8 @@ namespace wishbone::mii
         return false;
       }
 
-      const bool loaded = LoadShaderResource( &textureShaderResource, TextureShaderPath )
-                       && LoadShaderResource( &modelShaderResource, ModelShaderPath );
+      const bool loaded = LoadShaderResource( &textureShaderResource, TextureShaderPath ) &&
+                          LoadShaderResource( &modelShaderResource, ModelShaderPath );
 
       nn::fs::Unmount( "Contents" );
       ::free( cache );
@@ -373,11 +421,11 @@ namespace wishbone::mii
       info.SetDynamicTextureMipCount( TextureMipCount, TextureMipCount );
 
       const size_t memorySize = nn::mii::CharModel::CalculateMemorySize( info );
-      charModelMemory = Allocate(
-        memorySize, nn::mii::CharModel::CalculateMemoryAlignment( info ), "Allocate CharModel memory" );
+      charModelMemory =
+        Allocate( memorySize, nn::mii::CharModel::CalculateMemoryAlignment( info ), "Allocate CharModel memory" );
 
-      auto * temporary = static_cast<nn::mii::TemporaryBuffer *>(
-        Allocate( nn::mii::TemporaryBufferSize, alignof( nn::mii::TemporaryBuffer ), "Allocate CharModel temporary memory" ) );
+      auto * temporary = static_cast<nn::mii::TemporaryBuffer *>( Allocate(
+        nn::mii::TemporaryBufferSize, alignof( nn::mii::TemporaryBuffer ), "Allocate CharModel temporary memory" ) );
 
       if ( charModelMemory == nullptr || temporary == nullptr )
       {
@@ -394,12 +442,10 @@ namespace wishbone::mii
       const size_t staticAlignment  = nn::mii::CharModel::CalculateStaticMemoryPoolAlignment( resources );
       const size_t staticSize       = nn::mii::CharModel::CalculateStaticMemoryPoolSize( resources );
 
-      charDynamicPoolOffset = graphics->AllocatePoolMemory( Framework::MemoryPoolType_Others,
-                                                            dynamicSize,
-                                                            dynamicAlignment );
-      charStaticPoolOffset = graphics->AllocatePoolMemory( Framework::MemoryPoolType_Data,
-                                                           staticSize,
-                                                           staticAlignment );
+      charDynamicPoolOffset =
+        graphics->AllocatePoolMemory( Framework::MemoryPoolType_Others, dynamicSize, dynamicAlignment );
+      charStaticPoolOffset =
+        graphics->AllocatePoolMemory( Framework::MemoryPoolType_Data, staticSize, staticAlignment );
 
       const nn::Result result = charModel.Initialize( charModelMemory,
                                                       memorySize,
@@ -429,11 +475,11 @@ namespace wishbone::mii
     bool InitializeFaceline( const nn::mii::Resource & resources, const nn::mii::CharInfo & charInfo )
     {
       const size_t memorySize = nn::mii::Faceline::CalculateMemorySize();
-      facelineMemory = Allocate(
-        memorySize, nn::mii::Faceline::CalculateMemoryAlignment(), "Allocate Faceline memory" );
+      facelineMemory =
+        Allocate( memorySize, nn::mii::Faceline::CalculateMemoryAlignment(), "Allocate Faceline memory" );
 
-      auto * temporary = static_cast<nn::mii::TemporaryBuffer *>(
-        Allocate( nn::mii::TemporaryBufferSize, alignof( nn::mii::TemporaryBuffer ), "Allocate Faceline temporary memory" ) );
+      auto * temporary = static_cast<nn::mii::TemporaryBuffer *>( Allocate(
+        nn::mii::TemporaryBufferSize, alignof( nn::mii::TemporaryBuffer ), "Allocate Faceline temporary memory" ) );
 
       if ( facelineMemory == nullptr || temporary == nullptr )
       {
@@ -446,10 +492,10 @@ namespace wishbone::mii
       }
 
       const size_t poolSize = nn::mii::Faceline::CalculateMemoryPoolSize( device, resources );
-      facelinePoolOffset = graphics->AllocatePoolMemory(
-        Framework::MemoryPoolType_Data,
-        poolSize,
-        nn::mii::Faceline::CalculateMemoryPoolAlignment( device, resources ) );
+      facelinePoolOffset =
+        graphics->AllocatePoolMemory( Framework::MemoryPoolType_Data,
+                                      poolSize,
+                                      nn::mii::Faceline::CalculateMemoryPoolAlignment( device, resources ) );
 
       const nn::Result result = faceline.Initialize( facelineMemory,
                                                      memorySize,
@@ -478,8 +524,8 @@ namespace wishbone::mii
       const size_t memorySize = nn::mii::Mask::CalculateMemorySize();
       maskMemory = Allocate( memorySize, nn::mii::Mask::CalculateMemoryAlignment(), "Allocate Mask memory" );
 
-      auto * temporary = static_cast<nn::mii::TemporaryBuffer *>(
-        Allocate( nn::mii::TemporaryBufferSize, alignof( nn::mii::TemporaryBuffer ), "Allocate Mask temporary memory" ) );
+      auto * temporary = static_cast<nn::mii::TemporaryBuffer *>( Allocate(
+        nn::mii::TemporaryBufferSize, alignof( nn::mii::TemporaryBuffer ), "Allocate Mask temporary memory" ) );
 
       if ( maskMemory == nullptr || temporary == nullptr )
       {
@@ -492,7 +538,7 @@ namespace wishbone::mii
       }
 
       const size_t poolSize = nn::mii::Mask::CalculateMemoryPoolSize( device, resources, ExpressionFlags );
-      maskPoolOffset = graphics->AllocatePoolMemory(
+      maskPoolOffset        = graphics->AllocatePoolMemory(
         Framework::MemoryPoolType_Data,
         poolSize,
         nn::mii::Mask::CalculateMemoryPoolAlignment( device, resources, ExpressionFlags ) );
@@ -554,30 +600,32 @@ namespace wishbone::mii
         if ( view != nullptr )
         {
           nn::gfx::DescriptorSlot slot;
-          const int index = textureSlotIndex + usedTextureSlots++;
+          const int               index = textureSlotIndex + usedTextureSlots++;
           graphics->SetTextureViewToDescriptorPool( index, view );
           graphics->GetDescriptorPool( nn::gfx::DescriptorPoolType_TextureView )->GetDescriptorSlot( &slot, index );
           charModel.SetTextureDescriptorSlot( type, slot, 0 );
         }
       }
 
+      for ( int maskSlot = 0; maskSlot < nn::mii::GetExpressionCount( ExpressionFlags ); ++maskSlot )
       {
         nn::gfx::DescriptorSlot slot;
-        const int index = textureSlotIndex + usedTextureSlots++;
-        graphics->SetTextureViewToDescriptorPool( index, charModel.GetTextureView( nn::mii::CharModel::TextureType_Mask, 0 ) );
+        const int               index = textureSlotIndex + usedTextureSlots++;
+        graphics->SetTextureViewToDescriptorPool(
+          index, charModel.GetTextureView( nn::mii::CharModel::TextureType_Mask, maskSlot ) );
         graphics->GetDescriptorPool( nn::gfx::DescriptorPoolType_TextureView )->GetDescriptorSlot( &slot, index );
-        charModel.SetTextureDescriptorSlot( nn::mii::CharModel::TextureType_Mask, slot, 0 );
+        charModel.SetTextureDescriptorSlot( nn::mii::CharModel::TextureType_Mask, slot, maskSlot );
       }
 
       for ( int i = 0; i < nn::mii::Faceline::TextureType_End; ++i )
       {
-        const auto type = static_cast<nn::mii::Faceline::TextureType>( i );
+        const auto                   type = static_cast<nn::mii::Faceline::TextureType>( i );
         const nn::gfx::TextureView * view = faceline.GetTextureView( type );
 
         if ( view != nullptr )
         {
           nn::gfx::DescriptorSlot slot;
-          const int index = textureSlotIndex + usedTextureSlots++;
+          const int               index = textureSlotIndex + usedTextureSlots++;
           graphics->SetTextureViewToDescriptorPool( index, view );
           graphics->GetDescriptorPool( nn::gfx::DescriptorPoolType_TextureView )->GetDescriptorSlot( &slot, index );
           faceline.SetTextureDescriptorSlot( type, slot );
@@ -586,13 +634,13 @@ namespace wishbone::mii
 
       for ( int i = 0; i < nn::mii::Mask::TextureType_End; ++i )
       {
-        const auto type = static_cast<nn::mii::Mask::TextureType>( i );
+        const auto                   type = static_cast<nn::mii::Mask::TextureType>( i );
         const nn::gfx::TextureView * view = mask.GetTextureView( type );
 
         if ( view != nullptr )
         {
           nn::gfx::DescriptorSlot slot;
-          const int index = textureSlotIndex + usedTextureSlots++;
+          const int               index = textureSlotIndex + usedTextureSlots++;
           graphics->SetTextureViewToDescriptorPool( index, view );
           graphics->GetDescriptorPool( nn::gfx::DescriptorPoolType_TextureView )->GetDescriptorSlot( &slot, index );
           mask.SetTextureDescriptorSlot( type, slot );
@@ -606,28 +654,27 @@ namespace wishbone::mii
     bool InitializeGenerationBuffers()
     {
       size_t memorySize = nn::mii::FacelineGpuBuffer::CalculateMemorySize();
-      facelineGpuMemory = Allocate( memorySize,
-                                    nn::mii::FacelineGpuBuffer::CalculateMemoryAlignment(),
-                                    "Allocate FacelineGpuBuffer memory" );
+      facelineGpuMemory = Allocate(
+        memorySize, nn::mii::FacelineGpuBuffer::CalculateMemoryAlignment(), "Allocate FacelineGpuBuffer memory" );
 
       size_t poolSize = nn::mii::FacelineGpuBuffer::CalculateMemoryPoolSize( device );
-      facelineGpuPoolOffset = graphics->AllocatePoolMemory(
-        Framework::MemoryPoolType_ConstantBuffer,
-        poolSize,
-        nn::mii::FacelineGpuBuffer::CalculateMemoryPoolAlignment( device ) );
+      facelineGpuPoolOffset =
+        graphics->AllocatePoolMemory( Framework::MemoryPoolType_ConstantBuffer,
+                                      poolSize,
+                                      nn::mii::FacelineGpuBuffer::CalculateMemoryPoolAlignment( device ) );
 
       if ( facelineGpuMemory == nullptr )
       {
         return false;
       }
 
-      nn::Result result = facelineGpuBuffer.Initialize(
-        facelineGpuMemory,
-        memorySize,
-        device,
-        graphics->GetMemoryPool( Framework::MemoryPoolType_ConstantBuffer ),
-        facelineGpuPoolOffset,
-        poolSize );
+      nn::Result result =
+        facelineGpuBuffer.Initialize( facelineGpuMemory,
+                                      memorySize,
+                                      device,
+                                      graphics->GetMemoryPool( Framework::MemoryPoolType_ConstantBuffer ),
+                                      facelineGpuPoolOffset,
+                                      poolSize );
 
       if ( result.IsFailure() )
       {
@@ -636,14 +683,14 @@ namespace wishbone::mii
       }
 
       memorySize = nn::mii::MaskGpuBuffer::CalculateMemorySize();
-      maskGpuMemory = Allocate(
-        memorySize, nn::mii::MaskGpuBuffer::CalculateMemoryAlignment(), "Allocate MaskGpuBuffer memory" );
+      maskGpuMemory =
+        Allocate( memorySize, nn::mii::MaskGpuBuffer::CalculateMemoryAlignment(), "Allocate MaskGpuBuffer memory" );
 
       poolSize = nn::mii::MaskGpuBuffer::CalculateMemoryPoolSize( device );
-      maskGpuPoolOffset = graphics->AllocatePoolMemory(
-        Framework::MemoryPoolType_ConstantBuffer,
-        poolSize,
-        nn::mii::MaskGpuBuffer::CalculateMemoryPoolAlignment( device ) );
+      maskGpuPoolOffset =
+        graphics->AllocatePoolMemory( Framework::MemoryPoolType_ConstantBuffer,
+                                      poolSize,
+                                      nn::mii::MaskGpuBuffer::CalculateMemoryPoolAlignment( device ) );
 
       if ( maskGpuMemory == nullptr )
       {
@@ -668,7 +715,7 @@ namespace wishbone::mii
 
     bool GenerateFaceTextures()
     {
-      Framework::CommandBuffer commandBuffer = {};
+      Framework::CommandBuffer         commandBuffer = {};
       nn::gfx::CommandBuffer::InfoType info;
       info.SetDefault();
       info.SetQueueCapability( nn::gfx::QueueCapability_Graphics );
@@ -688,34 +735,33 @@ namespace wishbone::mii
       commandBuffer.object.Begin();
       commandBuffer.object.SetDescriptorPool( graphics->GetDescriptorPool( nn::gfx::DescriptorPoolType_TextureView ) );
       commandBuffer.object.SetDescriptorPool( graphics->GetDescriptorPool( nn::gfx::DescriptorPoolType_Sampler ) );
-      commandBuffer.object.InvalidateMemory( nn::gfx::GpuAccess_Texture
-                                           | nn::gfx::GpuAccess_IndexBuffer
-                                           | nn::gfx::GpuAccess_ConstantBuffer
-                                           | nn::gfx::GpuAccess_VertexBuffer );
+      commandBuffer.object.InvalidateMemory( nn::gfx::GpuAccess_Texture | nn::gfx::GpuAccess_IndexBuffer |
+                                             nn::gfx::GpuAccess_ConstantBuffer | nn::gfx::GpuAccess_VertexBuffer );
       textureShader.DrawFaceline( &commandBuffer.object, &facelineGpuBuffer, samplerSlot );
       commandBuffer.object.End();
       graphics->GetQueue()->ExecuteCommand( &commandBuffer.object, nullptr );
       graphics->GetQueue()->Sync();
 
-      maskGpuBuffer.SetColorTarget( device,
-                                    charModel.GetMaskTexture( 0 ),
-                                    textureShaderInfo,
-                                    TextureResolution,
-                                    TextureMipCount );
-      maskGpuBuffer.SetMask( mask, nn::mii::Expression_Normal );
+      const int maskCount = nn::mii::GetExpressionCount( ExpressionFlags );
 
-      graphics->ResetCommandBuffer( &commandBuffer );
-      commandBuffer.object.Begin();
-      commandBuffer.object.SetDescriptorPool( graphics->GetDescriptorPool( nn::gfx::DescriptorPoolType_TextureView ) );
-      commandBuffer.object.SetDescriptorPool( graphics->GetDescriptorPool( nn::gfx::DescriptorPoolType_Sampler ) );
-      commandBuffer.object.InvalidateMemory( nn::gfx::GpuAccess_Texture
-                                           | nn::gfx::GpuAccess_IndexBuffer
-                                           | nn::gfx::GpuAccess_ConstantBuffer
-                                           | nn::gfx::GpuAccess_VertexBuffer );
-      textureShader.DrawMask( &commandBuffer.object, &maskGpuBuffer, samplerSlot );
-      commandBuffer.object.End();
-      graphics->GetQueue()->ExecuteCommand( &commandBuffer.object, nullptr );
-      graphics->GetQueue()->Sync();
+      for ( int maskSlot = 0; maskSlot < maskCount; ++maskSlot )
+      {
+        maskGpuBuffer.SetColorTarget(
+          device, charModel.GetMaskTexture( maskSlot ), textureShaderInfo, TextureResolution, TextureMipCount );
+        maskGpuBuffer.SetMask( mask, GetExpressionForMaskSlot( maskSlot ) );
+
+        graphics->ResetCommandBuffer( &commandBuffer );
+        commandBuffer.object.Begin();
+        commandBuffer.object.SetDescriptorPool(
+          graphics->GetDescriptorPool( nn::gfx::DescriptorPoolType_TextureView ) );
+        commandBuffer.object.SetDescriptorPool( graphics->GetDescriptorPool( nn::gfx::DescriptorPoolType_Sampler ) );
+        commandBuffer.object.InvalidateMemory( nn::gfx::GpuAccess_Texture | nn::gfx::GpuAccess_IndexBuffer |
+                                               nn::gfx::GpuAccess_ConstantBuffer | nn::gfx::GpuAccess_VertexBuffer );
+        textureShader.DrawMask( &commandBuffer.object, &maskGpuBuffer, samplerSlot );
+        commandBuffer.object.End();
+        graphics->GetQueue()->ExecuteCommand( &commandBuffer.object, nullptr );
+        graphics->GetQueue()->Sync();
+      }
 
       graphics->FinalizeCommandBuffer( &commandBuffer );
       return true;
@@ -753,8 +799,8 @@ namespace wishbone::mii
         blendInfo.SetBlendTargetStateInfoArray( &targetInfo, 1 );
 
         const size_t blendMemorySize = nn::gfx::BlendState::GetRequiredMemorySize( blendInfo );
-        blendStateMemory[ i ] = Allocate(
-          blendMemorySize, nn::gfx::BlendState::RequiredMemoryInfo_Alignment, "Allocate BlendState memory" );
+        blendStateMemory[ i ] =
+          Allocate( blendMemorySize, nn::gfx::BlendState::RequiredMemoryInfo_Alignment, "Allocate BlendState memory" );
 
         if ( blendStateMemory[ i ] == nullptr )
         {
@@ -798,8 +844,8 @@ namespace wishbone::mii
       vertexInfo.SetVertexBufferStateInfoArray( buffers, 2 );
 
       const size_t vertexMemorySize = nn::gfx::VertexState::GetRequiredMemorySize( vertexInfo );
-      vertexStateMemory = Allocate(
-        vertexMemorySize, nn::gfx::VertexState::RequiredMemoryInfo_Alignment, "Allocate VertexState memory" );
+      vertexStateMemory =
+        Allocate( vertexMemorySize, nn::gfx::VertexState::RequiredMemoryInfo_Alignment, "Allocate VertexState memory" );
 
       if ( vertexStateMemory == nullptr )
       {
@@ -810,17 +856,17 @@ namespace wishbone::mii
       vertexState.Initialize( device, vertexInfo, nullptr );
       vertexStateInitialized = true;
 
-      const auto * program = modelShaderResource.file->GetShaderContainer()
-                               ->GetResShaderVariation( 0 )
-                               ->GetResShaderProgram( modelShaderResource.codeType );
+      const auto * program =
+        modelShaderResource.file->GetShaderContainer()->GetResShaderVariation( 0 )->GetResShaderProgram(
+          modelShaderResource.codeType );
       const nn::gfx::Shader * shader = program->GetShader();
 
       matrixSlot = shader->GetInterfaceSlot(
         nn::gfx::ShaderStage_Vertex, nn::gfx::ShaderInterfaceType_ConstantBuffer, "u_Matrix" );
       modulateSlot = shader->GetInterfaceSlot(
         nn::gfx::ShaderStage_Pixel, nn::gfx::ShaderInterfaceType_ConstantBuffer, "u_Modulate" );
-      samplerShaderSlot = shader->GetInterfaceSlot(
-        nn::gfx::ShaderStage_Pixel, nn::gfx::ShaderInterfaceType_Sampler, "s_Texture" );
+      samplerShaderSlot =
+        shader->GetInterfaceSlot( nn::gfx::ShaderStage_Pixel, nn::gfx::ShaderInterfaceType_Sampler, "s_Texture" );
 
       if ( matrixSlot < 0 || modulateSlot < 0 || samplerShaderSlot < 0 )
       {
@@ -838,10 +884,9 @@ namespace wishbone::mii
       matrixInfo.SetGpuAccessFlags( nn::gfx::GpuAccess_ConstantBuffer );
       matrixInfo.SetSize( sizeof( ConstantBufferMatrix ) );
 
-      matrixBufferOffset = graphics->AllocatePoolMemory(
-        Framework::MemoryPoolType_ConstantBuffer,
-        matrixInfo.GetSize(),
-        nn::gfx::Buffer::GetBufferAlignment( device, matrixInfo ) );
+      matrixBufferOffset = graphics->AllocatePoolMemory( Framework::MemoryPoolType_ConstantBuffer,
+                                                         matrixInfo.GetSize(),
+                                                         nn::gfx::Buffer::GetBufferAlignment( device, matrixInfo ) );
       matrixBuffer.Initialize( device,
                                matrixInfo,
                                graphics->GetMemoryPool( Framework::MemoryPoolType_ConstantBuffer ),
@@ -858,7 +903,7 @@ namespace wishbone::mii
 
       const nn::util::Vector3fType cameraPosition = NN_UTIL_VECTOR_3F_INITIALIZER( -35.0f, 30.0f, 115.0f );
       const nn::util::Vector3fType cameraTarget   = NN_UTIL_VECTOR_3F_INITIALIZER( -35.0f, 30.0f, 0.0f );
-      nn::util::Matrix4x3fType modelView;
+      nn::util::Matrix4x3fType     modelView;
       nn::util::MatrixLookAtRightHanded( &modelView, cameraPosition, cameraTarget, 0.0f );
       nn::util::MatrixStore( &matrix->modelView, modelView );
 
@@ -873,8 +918,8 @@ namespace wishbone::mii
 
       for ( int i = 0; i < nn::mii::CharModel::DrawType_End; ++i )
       {
-        modulateBufferOffsets[ i ] = graphics->AllocatePoolMemory(
-          Framework::MemoryPoolType_ConstantBuffer, modulateInfo.GetSize(), alignment );
+        modulateBufferOffsets[ i ] =
+          graphics->AllocatePoolMemory( Framework::MemoryPoolType_ConstantBuffer, modulateInfo.GetSize(), alignment );
         modulateBuffers[ i ].Initialize( device,
                                          modulateInfo,
                                          graphics->GetMemoryPool( Framework::MemoryPoolType_ConstantBuffer ),
@@ -882,12 +927,11 @@ namespace wishbone::mii
                                          modulateInfo.GetSize() );
         ++modulateBufferCount;
 
-        const auto drawType = static_cast<nn::mii::CharModel::DrawType>( i );
-        const nn::mii::DrawParam * drawParam =
-          charModel.GetDrawParam( drawType, CreateModelType, CreateNoseType, 0 );
+        const auto                 drawType  = static_cast<nn::mii::CharModel::DrawType>( i );
+        const nn::mii::DrawParam * drawParam = charModel.GetDrawParam( drawType, CreateModelType, CreateNoseType, 0 );
 
         auto * constants = modulateBuffers[ i ].Map<ConstantBufferModulate>();
-        *constants = {};
+        *constants       = {};
 
         if ( drawParam != nullptr )
         {
@@ -916,23 +960,20 @@ namespace wishbone::mii
     {
       if ( drawParam.IsValidTexture() )
       {
-        commands->SetTextureAndSampler( samplerShaderSlot,
-                                        nn::gfx::ShaderStage_Pixel,
-                                        *drawParam.GetTextureDescriptorSlot(),
-                                        samplerSlot );
+        commands->SetTextureAndSampler(
+          samplerShaderSlot, nn::gfx::ShaderStage_Pixel, *drawParam.GetTextureDescriptorSlot(), samplerSlot );
       }
 
-      nn::gfx::GpuAddress address;
-      const nn::gfx::Buffer * vertexBuffer =
-        drawParam.GetAttribute( nn::mii::DrawParam::AttributeType_Position );
-      size_t vertexBufferSize = drawParam.GetBufferSize( nn::mii::DrawParam::AttributeType_Position );
+      nn::gfx::GpuAddress     address;
+      const nn::gfx::Buffer * vertexBuffer     = drawParam.GetAttribute( nn::mii::DrawParam::AttributeType_Position );
+      size_t                  vertexBufferSize = drawParam.GetBufferSize( nn::mii::DrawParam::AttributeType_Position );
 
       vertexBuffer->GetGpuAddress( &address );
       commands->SetVertexBuffer( 0, address, nn::mii::DrawParam::PositionStride, vertexBufferSize );
 
       if ( drawParam.IsValidAttribute( nn::mii::DrawParam::AttributeType_Uv ) )
       {
-        vertexBuffer = drawParam.GetAttribute( nn::mii::DrawParam::AttributeType_Uv );
+        vertexBuffer     = drawParam.GetAttribute( nn::mii::DrawParam::AttributeType_Uv );
         vertexBufferSize = drawParam.GetBufferSize( nn::mii::DrawParam::AttributeType_Uv );
       }
 
@@ -940,11 +981,8 @@ namespace wishbone::mii
       commands->SetVertexBuffer( 1, address, nn::mii::DrawParam::UvStride, vertexBufferSize );
 
       drawParam.GetIndexBuffer()->GetGpuAddress( &address );
-      commands->DrawIndexed( nn::mii::DrawParam::PrimitiveTopology,
-                             nn::mii::DrawParam::IndexFormat,
-                             address,
-                             drawParam.GetIndexCount(),
-                             0 );
+      commands->DrawIndexed(
+        nn::mii::DrawParam::PrimitiveTopology, nn::mii::DrawParam::IndexFormat, address, drawParam.GetIndexCount(), 0 );
     }
 
     void Draw( nn::gfx::CommandBuffer * commands )
@@ -954,10 +992,8 @@ namespace wishbone::mii
         return;
       }
 
-      commands->InvalidateMemory( nn::gfx::GpuAccess_Texture
-                                | nn::gfx::GpuAccess_IndexBuffer
-                                | nn::gfx::GpuAccess_ConstantBuffer
-                                | nn::gfx::GpuAccess_VertexBuffer );
+      commands->InvalidateMemory( nn::gfx::GpuAccess_Texture | nn::gfx::GpuAccess_IndexBuffer |
+                                  nn::gfx::GpuAccess_ConstantBuffer | nn::gfx::GpuAccess_VertexBuffer );
 
       const nn::gfx::Shader * shader = modelShaderResource.file->GetShaderContainer()
                                          ->GetResShaderVariation( 0 )
@@ -966,18 +1002,16 @@ namespace wishbone::mii
 
       for ( int i = 0; i < nn::mii::CharModel::DrawType_End; ++i )
       {
-        const auto drawType = static_cast<nn::mii::CharModel::DrawType>( i );
+        const auto                 drawType = static_cast<nn::mii::CharModel::DrawType>( i );
         const nn::mii::DrawParam * drawParam =
-          charModel.GetDrawParam( drawType, CreateModelType, CreateNoseType, 0 );
+          charModel.GetDrawParam( drawType, CreateModelType, CreateNoseType, activeMaskSlot );
 
         if ( drawParam == nullptr )
         {
           continue;
         }
 
-        const DrawMode mode = drawType >= nn::mii::CharModel::DrawType_XluMin
-                                ? DrawMode_Translucent
-                                : DrawMode_Opaque;
+        const DrawMode mode = drawType >= nn::mii::CharModel::DrawType_XluMin ? DrawMode_Translucent : DrawMode_Opaque;
 
         commands->SetRasterizerState( &rasterizerStates[ drawParam->GetCullMode() ] );
         commands->SetBlendState( &blendStates[ mode ] );
@@ -987,8 +1021,7 @@ namespace wishbone::mii
 
         nn::gfx::GpuAddress address;
         matrixBuffer.GetGpuAddress( &address );
-        commands->SetConstantBuffer(
-          matrixSlot, nn::gfx::ShaderStage_Vertex, address, sizeof( ConstantBufferMatrix ) );
+        commands->SetConstantBuffer( matrixSlot, nn::gfx::ShaderStage_Vertex, address, sizeof( ConstantBufferMatrix ) );
 
         modulateBuffers[ i ].GetGpuAddress( &address );
         commands->SetConstantBuffer(
@@ -996,6 +1029,20 @@ namespace wishbone::mii
 
         DrawByParam( commands, *drawParam );
       }
+    }
+
+    bool SetExpression( nn::mii::Expression expression )
+    {
+      const int maskSlot = GetMaskSlotForExpression( expression );
+
+      if ( maskSlot < 0 )
+      {
+        return false;
+      }
+
+      activeExpression = expression;
+      activeMaskSlot   = maskSlot;
+      return true;
     }
 
     void Finalize()
@@ -1191,8 +1238,8 @@ namespace wishbone::mii
   }
 
   bool FixedModelRenderer::Initialize( nns::gfx::GraphicsFramework & graphics,
-                                       const RenderResources &        resources,
-                                       const nn::mii::CharInfo &      charInfo )
+                                       const RenderResources &       resources,
+                                       const nn::mii::CharInfo &     charInfo )
   {
     Finalize();
 
@@ -1220,16 +1267,11 @@ namespace wishbone::mii
 
     const nn::mii::Resource & resource = resources.GetResource();
 
-    const bool initialized = m_Impl->LoadShaders()
-                          && m_Impl->InitializeTextureShader()
-                          && m_Impl->InitializeCharModel( resource, charInfo )
-                          && m_Impl->InitializeFaceline( resource, charInfo )
-                          && m_Impl->InitializeMask( resource, charInfo )
-                          && m_Impl->BindDescriptors()
-                          && m_Impl->InitializeGenerationBuffers()
-                          && m_Impl->GenerateFaceTextures()
-                          && m_Impl->InitializeRenderStates()
-                          && m_Impl->InitializeConstantBuffers();
+    const bool initialized =
+      m_Impl->LoadShaders() && m_Impl->InitializeTextureShader() && m_Impl->InitializeCharModel( resource, charInfo ) &&
+      m_Impl->InitializeFaceline( resource, charInfo ) && m_Impl->InitializeMask( resource, charInfo ) &&
+      m_Impl->BindDescriptors() && m_Impl->InitializeGenerationBuffers() && m_Impl->GenerateFaceTextures() &&
+      m_Impl->InitializeRenderStates() && m_Impl->InitializeConstantBuffers();
 
     if ( !initialized )
     {
@@ -1260,6 +1302,11 @@ namespace wishbone::mii
     }
   }
 
+  bool FixedModelRenderer::SetExpression( nn::mii::Expression expression )
+  {
+    return m_Impl != nullptr && m_Impl->SetExpression( expression );
+  }
+
   bool FixedModelRenderer::IsSupported() const
   {
 #if defined( NN_BUILD_CONFIG_OS_SUPPORTS_HORIZON )
@@ -1282,6 +1329,16 @@ namespace wishbone::mii
   bool FixedModelRenderer::HasResultCode() const
   {
     return m_Impl != nullptr && m_Impl->hasResultCode;
+  }
+
+  nn::mii::Expression FixedModelRenderer::GetExpression() const
+  {
+    return m_Impl != nullptr ? m_Impl->activeExpression : nn::mii::Expression_Normal;
+  }
+
+  int FixedModelRenderer::GetExpressionMaskSlot() const
+  {
+    return m_Impl != nullptr ? m_Impl->activeMaskSlot : 0;
   }
 
   const char * FixedModelRenderer::GetErrorOperation() const
