@@ -36,10 +36,10 @@ namespace wishbone::dev
                      const wishbone::mii::FixedModelRenderer & fixedModelRenderer );
     void Render( nn::gfx::CommandBuffer * commands );
 
-    const float *                             GetClearColor() const;
-    bool                                      IsExitRequested() const;
-    int                                       GetSelectedMii() const;
-    nn::mii::Expression                       GetSelectedExpression() const;
+    const float *                            GetClearColor() const;
+    bool                                     IsExitRequested() const;
+    int                                      GetSelectedMii() const;
+    nn::mii::Expression                      GetSelectedExpression() const;
     const wishbone::mii::FacePaintSettings & GetFacePaintSettings() const;
 
   private:

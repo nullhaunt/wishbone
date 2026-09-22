@@ -81,7 +81,8 @@ namespace wishbone::app
 
         if ( m_MiiCatalog.GetCount() > 0 )
         {
-          m_FixedModelRenderer.Initialize( m_Graphics, m_MiiRenderResources, m_MiiCatalog.GetEntry( 0 ).m_CharInfo, BufferCount );
+          m_FixedModelRenderer.Initialize(
+            m_Graphics, m_MiiRenderResources, m_MiiCatalog.GetEntry( 0 ).m_CharInfo, BufferCount );
           m_RenderedMii = 0;
         }
 

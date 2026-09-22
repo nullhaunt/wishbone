@@ -36,14 +36,14 @@ namespace wishbone::mii
     bool Initialize( nns::gfx::GraphicsFramework & graphics );
     void Finalize();
 
-    bool IsReady() const;
+    bool                            IsReady() const;
     const nn::gfx::DescriptorSlot & GetTextureDescriptorSlot() const;
 
   private:
     void BuildDiagnosticPattern( std::uint8_t * pixels ) const;
 
     nns::gfx::GraphicsFramework * m_Graphics = nullptr;
-    nn::gfx::Device *              m_Device   = nullptr;
+    nn::gfx::Device *             m_Device   = nullptr;
 
     nn::gfx::Texture        m_Texture;
     nn::gfx::TextureView    m_TextureView;

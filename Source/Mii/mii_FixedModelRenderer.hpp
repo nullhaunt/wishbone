@@ -48,8 +48,12 @@ namespace wishbone::mii
 
   private:
     struct Impl;
+    struct ShaderFileCache;
 
-    Impl *            m_Impl = nullptr;
+    void FinalizeImpl();
+
+    Impl *            m_Impl            = nullptr;
+    ShaderFileCache * m_ShaderFileCache = nullptr;
     FacePaintSettings m_FacePaintSettings;
   };
 } // namespace wishbone::mii

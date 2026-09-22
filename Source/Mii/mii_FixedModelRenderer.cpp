@@ -14,6 +14,7 @@
 
 #include <cmath>
 #include <cstdlib>
+#include <cstring>
 #include <new>
 
 namespace wishbone::mii
@@ -118,6 +119,24 @@ namespace wishbone::mii
       return -1;
     }
   } // namespace
+
+  struct FixedModelRenderer::ShaderFileCache
+  {
+    struct File
+    {
+      void * memory = nullptr;
+      size_t size   = 0;
+    };
+
+    ~ShaderFileCache()
+    {
+      ::free( model.memory );
+      ::free( texture.memory );
+    }
+
+    File texture;
+    File model;
+  };
 
   struct FixedModelRenderer::Impl
   {
@@ -256,7 +275,7 @@ namespace wishbone::mii
       return memory;
     }
 
-    bool LoadShaderResource( ShaderResource * resource, const char * path )
+    bool LoadShaderFile( ShaderFileCache::File * file, const char * path )
     {
       nn::fs::FileHandle handle;
       nn::Result         result = nn::fs::OpenFile( &handle, path, nn::fs::OpenMode_Read );
@@ -277,33 +296,94 @@ namespace wishbone::mii
         return false;
       }
 
-      nn::util::BinaryFileHeader header = {};
-      result                            = nn::fs::ReadFile( handle, 0, &header, sizeof( header ) );
-
-      if ( result.IsFailure() )
+      if ( fileSize < static_cast<int64_t>( sizeof( nn::util::BinaryFileHeader ) ) )
       {
         nn::fs::CloseFile( handle );
-        SetError( "Read shader header", result );
+        SetError( "Validate shader file size" );
         return false;
       }
 
-      resource->memory = Allocate( static_cast<size_t>( fileSize ), header.GetAlignment(), "Allocate shader file" );
+      file->size   = static_cast<size_t>( fileSize );
+      file->memory = ::malloc( file->size );
 
-      if ( resource->memory == nullptr )
+      if ( file->memory == nullptr )
       {
         nn::fs::CloseFile( handle );
+        file->size = 0;
+        SetError( "Allocate shader file cache" );
         return false;
       }
 
-      result = nn::fs::ReadFile( handle, 0, resource->memory, static_cast<size_t>( fileSize ) );
+      result = nn::fs::ReadFile( handle, 0, file->memory, file->size );
       nn::fs::CloseFile( handle );
 
       if ( result.IsFailure() )
       {
+        ::free( file->memory );
+        file->memory = nullptr;
+        file->size   = 0;
         SetError( "Read shader file", result );
         return false;
       }
 
+      return true;
+    }
+
+    bool LoadShaderFileCache( ShaderFileCache * cache )
+    {
+      size_t     cacheSize = 0;
+      nn::Result result    = nn::fs::QueryMountRomCacheSize( &cacheSize );
+
+      if ( result.IsFailure() )
+      {
+        SetError( "QueryMountRomCacheSize", result );
+        return false;
+      }
+
+      void * mountCache = ::malloc( cacheSize );
+
+      if ( mountCache == nullptr )
+      {
+        SetError( "Allocate ROM cache" );
+        return false;
+      }
+
+      result = nn::fs::MountRom( "Contents", mountCache, cacheSize );
+
+      if ( result.IsFailure() )
+      {
+        ::free( mountCache );
+        SetError( "MountRom", result );
+        return false;
+      }
+
+      const bool loaded =
+        LoadShaderFile( &cache->texture, TextureShaderPath ) && LoadShaderFile( &cache->model, ModelShaderPath );
+
+      nn::fs::Unmount( "Contents" );
+      ::free( mountCache );
+
+      if ( loaded )
+      {
+        NN_LOG( "[Wishbone] Cached Mii shader files.\n" );
+      }
+
+      return loaded;
+    }
+
+    bool InitializeShaderResource( ShaderResource * resource, const ShaderFileCache::File & file )
+    {
+      nn::util::BinaryFileHeader header = {};
+      std::memcpy( &header, file.memory, sizeof( header ) );
+
+      resource->memory = Allocate( file.size, header.GetAlignment(), "Allocate shader file" );
+
+      if ( resource->memory == nullptr )
+      {
+        return false;
+      }
+
+      std::memcpy( resource->memory, file.memory, file.size );
       resource->file = nn::gfx::ResShaderFile::ResCast( resource->memory );
 
       if ( resource->file == nullptr )
@@ -361,41 +441,10 @@ namespace wishbone::mii
       }
     }
 
-    bool LoadShaders()
+    bool InitializeShaders( const ShaderFileCache & cache )
     {
-      size_t     cacheSize = 0;
-      nn::Result result    = nn::fs::QueryMountRomCacheSize( &cacheSize );
-
-      if ( result.IsFailure() )
-      {
-        SetError( "QueryMountRomCacheSize", result );
-        return false;
-      }
-
-      void * cache = ::malloc( cacheSize );
-
-      if ( cache == nullptr )
-      {
-        SetError( "Allocate ROM cache" );
-        return false;
-      }
-
-      result = nn::fs::MountRom( "Contents", cache, cacheSize );
-
-      if ( result.IsFailure() )
-      {
-        ::free( cache );
-        SetError( "MountRom", result );
-        return false;
-      }
-
-      const bool loaded = LoadShaderResource( &textureShaderResource, TextureShaderPath ) &&
-                          LoadShaderResource( &modelShaderResource, ModelShaderPath );
-
-      nn::fs::Unmount( "Contents" );
-      ::free( cache );
-
-      return loaded;
+      return InitializeShaderResource( &textureShaderResource, cache.texture ) &&
+             InitializeShaderResource( &modelShaderResource, cache.model );
     }
 
     bool InitializeTextureShader()
@@ -973,8 +1022,8 @@ namespace wishbone::mii
         const auto                 drawType  = static_cast<nn::mii::CharModel::DrawType>( i );
         const nn::mii::DrawParam * drawParam = charModel.GetDrawParam( drawType, CreateModelType, CreateNoseType, 0 );
 
-        auto * constants = modulateBuffers[ i ].Map<ConstantBufferModulate>();
-        *constants       = {};
+        auto * constants         = modulateBuffers[ i ].Map<ConstantBufferModulate>();
+        *constants               = {};
         constants->facePaintPass = drawType == nn::mii::CharModel::DrawType_Faceline ? 1 : 0;
 
         if ( drawParam != nullptr )
@@ -1080,9 +1129,7 @@ namespace wishbone::mii
         nn::mii::DrawParam::PrimitiveTopology, nn::mii::DrawParam::IndexFormat, address, drawParam.GetIndexCount(), 0 );
     }
 
-    void Draw( nn::gfx::CommandBuffer * commands,
-               int                      frameIndex,
-               const FacePaintSettings & facePaint )
+    void Draw( nn::gfx::CommandBuffer * commands, int frameIndex, const FacePaintSettings & facePaint )
     {
       if ( !ready || frameIndex < 0 || frameIndex >= facePaintBufferCount )
       {
@@ -1117,10 +1164,8 @@ namespace wishbone::mii
         commands->SetDepthStencilState( &depthStates[ mode ] );
         commands->SetVertexState( &vertexState );
         commands->SetShader( shader, nn::gfx::ShaderStageBit_All );
-        commands->SetTextureAndSampler( facePaintSamplerSlot,
-                                        nn::gfx::ShaderStage_Pixel,
-                                        facePaintCanvas.GetTextureDescriptorSlot(),
-                                        samplerSlot );
+        commands->SetTextureAndSampler(
+          facePaintSamplerSlot, nn::gfx::ShaderStage_Pixel, facePaintCanvas.GetTextureDescriptorSlot(), samplerSlot );
 
         nn::gfx::GpuAddress address;
         matrixBuffer.GetGpuAddress( &address );
@@ -1360,7 +1405,7 @@ namespace wishbone::mii
                                        const nn::mii::CharInfo &     charInfo,
                                        int                           frameCount )
   {
-    Finalize();
+    FinalizeImpl();
 
 #if !defined( NN_BUILD_CONFIG_OS_SUPPORTS_HORIZON )
     NN_UNUSED( graphics );
@@ -1387,12 +1432,32 @@ namespace wishbone::mii
 
     const nn::mii::Resource & resource = resources.GetResource();
 
+    // NSPD content can be served by the development host. Cache both files
+    // while that connection is available so later Mii changes stay local.
+    if ( m_ShaderFileCache == nullptr )
+    {
+      m_ShaderFileCache = new ( std::nothrow ) ShaderFileCache();
+
+      if ( m_ShaderFileCache == nullptr )
+      {
+        m_Impl->SetError( "Allocate shader file cache" );
+        return false;
+      }
+
+      if ( !m_Impl->LoadShaderFileCache( m_ShaderFileCache ) )
+      {
+        delete m_ShaderFileCache;
+        m_ShaderFileCache = nullptr;
+        return false;
+      }
+    }
+
     const bool initialized =
-      m_Impl->LoadShaders() && m_Impl->InitializeTextureShader() && m_Impl->InitializeCharModel( resource, charInfo ) &&
-      m_Impl->InitializeFaceline( resource, charInfo ) && m_Impl->InitializeMask( resource, charInfo ) &&
-      m_Impl->BindDescriptors() && m_Impl->InitializeFacePaintCanvas() &&
-      m_Impl->InitializeGenerationBuffers() && m_Impl->GenerateFaceTextures() && m_Impl->InitializeRenderStates() &&
-      m_Impl->InitializeConstantBuffers( frameCount );
+      m_Impl->InitializeShaders( *m_ShaderFileCache ) && m_Impl->InitializeTextureShader() &&
+      m_Impl->InitializeCharModel( resource, charInfo ) && m_Impl->InitializeFaceline( resource, charInfo ) &&
+      m_Impl->InitializeMask( resource, charInfo ) && m_Impl->BindDescriptors() &&
+      m_Impl->InitializeFacePaintCanvas() && m_Impl->InitializeGenerationBuffers() && m_Impl->GenerateFaceTextures() &&
+      m_Impl->InitializeRenderStates() && m_Impl->InitializeConstantBuffers( frameCount );
 
     if ( !initialized )
     {
@@ -1406,6 +1471,14 @@ namespace wishbone::mii
   }
 
   void FixedModelRenderer::Finalize()
+  {
+    FinalizeImpl();
+
+    delete m_ShaderFileCache;
+    m_ShaderFileCache = nullptr;
+  }
+
+  void FixedModelRenderer::FinalizeImpl()
   {
     if ( m_Impl != nullptr )
     {

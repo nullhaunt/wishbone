@@ -89,9 +89,12 @@ For the fixed-Mii checkpoint:
 6. Change Miis and expressions while the paint is visible. The paint should
    remain anchored to the face, persist across both changes, and stay behind
    the SDK-rendered eyes, eyebrows, and mouth.
-7. Change the background color and look for missing transparency, incorrect
+7. After the first Mii has rendered, disconnect the deployment USB connection
+   and select several other Miis. Selection should remain responsive because
+   the packaged Mii shader files are cached during initial renderer setup.
+8. Change the background color and look for missing transparency, incorrect
    draw order, or depth artifacts around hair, glasses, and facial features.
-8. Exit normally and confirm there is no graphics or allocator assertion.
+9. Exit normally and confirm there is no graphics or allocator assertion.
 
 Startup reports `[Wishbone] ImGui ready.`; normal exit reports
 `[Wishbone] Development UI shut down.` in logging-enabled configurations.
@@ -100,6 +103,6 @@ Validation on 2026-09-21: NX64 Debug/Develop/Release and x64 Develop builds pass
 including Mii shader generation and NX application-data packaging.
 The local Windows startup check stops at NVN device initialization
 (`devInit must not be nullptr`); this machine has an AMD Radeon RX 7900 XT.
-Owner hardware validation confirms Mii selection and all-expression preview.
-Face-paint rendering and the known shutdown assertion remain pending hardware
-validation.
+Owner hardware validation confirms Mii selection, all-expression preview, and
+face-paint rendering and controls. The disconnected-USB regression check and
+the known shutdown assertion remain pending hardware validation.

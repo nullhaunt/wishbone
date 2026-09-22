@@ -20,16 +20,16 @@ namespace wishbone::dev
                 const wishbone::mii::RenderResources &    renderResources,
                 const wishbone::mii::FixedModelRenderer & fixedModelRenderer );
 
-    bool                                      IsVisible() const;
-    void                                      SetVisible( bool visible );
-    int                                       GetSelectedMii() const;
-    nn::mii::Expression                       GetSelectedExpression() const;
+    bool                                     IsVisible() const;
+    void                                     SetVisible( bool visible );
+    int                                      GetSelectedMii() const;
+    nn::mii::Expression                      GetSelectedExpression() const;
     const wishbone::mii::FacePaintSettings & GetFacePaintSettings() const;
 
   private:
     wishbone::mii::FacePaintSettings m_FacePaintSettings;
-    bool                                m_IsVisible          = false;
-    int                                 m_SelectedMii        = 0;
-    int                                 m_SelectedExpression = nn::mii::Expression_Normal;
+    bool                             m_IsVisible          = false;
+    int                              m_SelectedMii        = 0;
+    int                              m_SelectedExpression = nn::mii::Expression_Normal;
   };
 } // namespace wishbone::dev

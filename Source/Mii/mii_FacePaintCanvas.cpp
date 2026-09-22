@@ -42,8 +42,8 @@ namespace wishbone::mii
     const size_t textureSize      = nn::gfx::Texture::CalculateMipDataSize( m_Device, textureInfo );
     const size_t textureAlignment = nn::gfx::Texture::CalculateMipDataAlignment( m_Device, textureInfo );
 
-    m_TexturePoolOffset = graphics.AllocatePoolMemory(
-      Framework::MemoryPoolType_Others, textureSize, textureAlignment );
+    m_TexturePoolOffset =
+      graphics.AllocatePoolMemory( Framework::MemoryPoolType_Others, textureSize, textureAlignment );
 
     if ( m_TexturePoolOffset < 0 )
     {
@@ -83,10 +83,10 @@ namespace wishbone::mii
     uploadInfo.SetGpuAccessFlags( nn::gfx::GpuAccess_Read );
     uploadInfo.SetSize( CanvasSize );
 
-    const ptrdiff_t uploadPoolOffset = graphics.AllocatePoolMemory(
-      Framework::MemoryPoolType_ConstantBuffer,
-      uploadInfo.GetSize(),
-      nn::gfx::Buffer::GetBufferAlignment( m_Device, uploadInfo ) );
+    const ptrdiff_t uploadPoolOffset =
+      graphics.AllocatePoolMemory( Framework::MemoryPoolType_ConstantBuffer,
+                                   uploadInfo.GetSize(),
+                                   nn::gfx::Buffer::GetBufferAlignment( m_Device, uploadInfo ) );
 
     if ( uploadPoolOffset < 0 )
     {
@@ -106,7 +106,7 @@ namespace wishbone::mii
     uploadBuffer.FlushMappedRange( 0, CanvasSize );
     uploadBuffer.Unmap();
 
-    Framework::CommandBuffer commandBuffer = {};
+    Framework::CommandBuffer         commandBuffer = {};
     nn::gfx::CommandBuffer::InfoType commandInfo;
     commandInfo.SetDefault();
     commandInfo.SetQueueCapability( nn::gfx::QueueCapability_Graphics );
@@ -197,9 +197,8 @@ namespace wishbone::mii
         const bool  dot  = dotX * dotX + dotY * dotY < 0.0064f;
 
         const bool shaft = u >= 0.30f && u <= 0.62f && v >= 0.47f && v <= 0.55f;
-        const bool arrow = u >= 0.56f && u <= 0.78f &&
-                           ( v >= 0.51f - ( 0.78f - u ) * 0.7f ) &&
-                           ( v <= 0.51f + ( 0.78f - u ) * 0.7f );
+        const bool arrow =
+          u >= 0.56f && u <= 0.78f && ( v >= 0.51f - ( 0.78f - u ) * 0.7f ) && ( v <= 0.51f + ( 0.78f - u ) * 0.7f );
 
         if ( !dot && !shaft && !arrow )
         {
