@@ -114,6 +114,25 @@ namespace wishbone::dev
       ImGui::SetNextItemWidth( 280.0f );
       ImGui::Combo( "Expression", &m_SelectedExpression, ExpressionNames, static_cast<int>( nn::mii::Expression_End ) );
 
+      if ( ImGui::CollapsingHeader( "Face paint proof", ImGuiTreeNodeFlags_DefaultOpen ) )
+      {
+        ImGui::TextDisabled( "%d x %d RGBA diagnostic canvas",
+                             wishbone::mii::FacePaintCanvas::Width,
+                             wishbone::mii::FacePaintCanvas::Height );
+        ImGui::Checkbox( "Enabled", &m_FacePaintSettings.enabled );
+        ImGui::ColorEdit4( "Color / opacity", m_FacePaintSettings.color );
+        ImGui::DragFloat2( "Position", m_FacePaintSettings.position, 0.01f, 0.0f, 1.0f, "%.2f" );
+        ImGui::DragFloat2( "Scale", m_FacePaintSettings.scale, 0.01f, 0.05f, 1.0f, "%.2f" );
+        ImGui::SliderFloat( "Rotation", &m_FacePaintSettings.rotation, -180.0f, 180.0f, "%.0f deg" );
+
+        if ( ImGui::Button( "Reset face paint" ) )
+        {
+          m_FacePaintSettings = {};
+        }
+
+        ImGui::TextWrapped( "Cyan dot plus pink arrow: use the asymmetry to verify UV orientation and seams." );
+      }
+
       ImGui::Separator();
 
       if ( !catalog.IsAvailable() )
@@ -166,7 +185,7 @@ namespace wishbone::dev
             m_SelectedMii = count - 1;
           }
 
-          ImGui::BeginChild( "Mii list", ImVec2( 280, 470 ), true );
+          ImGui::BeginChild( "Mii list", ImVec2( 280, 300 ), true );
 
           for ( int i = 0; i < count; ++i )
           {
@@ -230,5 +249,10 @@ namespace wishbone::dev
   nn::mii::Expression MiiLab::GetSelectedExpression() const
   {
     return static_cast<nn::mii::Expression>( m_SelectedExpression );
+  }
+
+  const wishbone::mii::FacePaintSettings & MiiLab::GetFacePaintSettings() const
+  {
+    return m_FacePaintSettings;
   }
 } // namespace wishbone::dev

@@ -12,6 +12,7 @@
 
 #include <nns/gfx/gfx_GraphicsFramework.h>
 
+#include <cmath>
 #include <cstdlib>
 #include <new>
 
@@ -23,6 +24,7 @@ namespace wishbone::mii
     constexpr int    TextureMipCount   = 1;
     constexpr int    ExpressionFlags   = nn::mii::ExpressionFlag_All;
     constexpr int    TextureSlotCount  = 64;
+    constexpr int    MaxFrameCount     = 3;
     constexpr bool   IsVerticalFlip    = true;
 
     constexpr nn::gfx::ImageFormat TextureFormat = nn::gfx::ImageFormat_R8_G8_B8_A8_Unorm;
@@ -44,8 +46,16 @@ namespace wishbone::mii
     struct ConstantBufferModulate
     {
       int32_t          modulateType;
-      int32_t          padding[ 3 ];
+      int32_t          facePaintPass;
+      int32_t          padding[ 2 ];
       nn::util::Float4 constantColor[ nn::mii::DrawParam::ConstantColorNum ];
+    };
+
+    struct ConstantBufferFacePaint
+    {
+      nn::util::Float4 color;
+      nn::util::Float4 transform;
+      nn::util::Float4 settings;
     };
 
     nn::gfx::ShaderCodeType FindShaderCodeType( const nn::gfx::ResShaderContainer & container )
@@ -138,6 +148,7 @@ namespace wishbone::mii
     nn::mii::MaskGpuBuffer     maskGpuBuffer;
     nn::mii::TextureShader     textureShader;
     nn::mii::TextureShaderInfo textureShaderInfo;
+    FacePaintCanvas            facePaintCanvas;
 
     nn::gfx::Sampler        sampler;
     nn::gfx::DescriptorSlot samplerSlot;
@@ -163,9 +174,12 @@ namespace wishbone::mii
 
     nn::gfx::Buffer matrixBuffer;
     nn::gfx::Buffer modulateBuffers[ nn::mii::CharModel::DrawType_End ];
+    nn::gfx::Buffer facePaintBuffers[ MaxFrameCount ];
     ptrdiff_t       matrixBufferOffset = -1;
     ptrdiff_t       modulateBufferOffsets[ nn::mii::CharModel::DrawType_End ];
+    ptrdiff_t       facePaintBufferOffsets[ MaxFrameCount ];
     int             modulateBufferCount     = 0;
+    int             facePaintBufferCount    = 0;
     bool            matrixBufferInitialized = false;
 
     void * textureShaderMemory = nullptr;
@@ -182,11 +196,13 @@ namespace wishbone::mii
     ptrdiff_t facelineGpuPoolOffset = -1;
     ptrdiff_t maskGpuPoolOffset     = -1;
 
-    int  matrixSlot        = -1;
-    int  modulateSlot      = -1;
-    int  samplerShaderSlot = -1;
-    int  activeMaskSlot    = 0;
-    bool ready             = false;
+    int  matrixSlot           = -1;
+    int  modulateSlot         = -1;
+    int  facePaintSlot        = -1;
+    int  samplerShaderSlot    = -1;
+    int  facePaintSamplerSlot = -1;
+    int  activeMaskSlot       = 0;
+    bool ready                = false;
 
     nn::mii::Expression activeExpression = nn::mii::Expression_Normal;
 
@@ -198,6 +214,11 @@ namespace wishbone::mii
     Impl()
     {
       for ( ptrdiff_t & offset : modulateBufferOffsets )
+      {
+        offset = -1;
+      }
+
+      for ( ptrdiff_t & offset : facePaintBufferOffsets )
       {
         offset = -1;
       }
@@ -767,6 +788,17 @@ namespace wishbone::mii
       return true;
     }
 
+    bool InitializeFacePaintCanvas()
+    {
+      if ( !facePaintCanvas.Initialize( *graphics ) )
+      {
+        SetError( "Initialize face paint canvas" );
+        return false;
+      }
+
+      return true;
+    }
+
     bool InitializeRenderStates()
     {
       for ( int i = 0; i < nn::gfx::CullMode_End; ++i )
@@ -865,10 +897,15 @@ namespace wishbone::mii
         nn::gfx::ShaderStage_Vertex, nn::gfx::ShaderInterfaceType_ConstantBuffer, "u_Matrix" );
       modulateSlot = shader->GetInterfaceSlot(
         nn::gfx::ShaderStage_Pixel, nn::gfx::ShaderInterfaceType_ConstantBuffer, "u_Modulate" );
+      facePaintSlot = shader->GetInterfaceSlot(
+        nn::gfx::ShaderStage_Pixel, nn::gfx::ShaderInterfaceType_ConstantBuffer, "u_FacePaint" );
       samplerShaderSlot =
         shader->GetInterfaceSlot( nn::gfx::ShaderStage_Pixel, nn::gfx::ShaderInterfaceType_Sampler, "s_Texture" );
+      facePaintSamplerSlot =
+        shader->GetInterfaceSlot( nn::gfx::ShaderStage_Pixel, nn::gfx::ShaderInterfaceType_Sampler, "s_FacePaint" );
 
-      if ( matrixSlot < 0 || modulateSlot < 0 || samplerShaderSlot < 0 )
+      if ( matrixSlot < 0 || modulateSlot < 0 || facePaintSlot < 0 || samplerShaderSlot < 0 ||
+           facePaintSamplerSlot < 0 )
       {
         SetError( "Find Mii model shader interfaces" );
         return false;
@@ -877,8 +914,14 @@ namespace wishbone::mii
       return true;
     }
 
-    bool InitializeConstantBuffers()
+    bool InitializeConstantBuffers( int frameCount )
     {
+      if ( frameCount <= 0 || frameCount > MaxFrameCount )
+      {
+        SetError( "Unsupported graphics frame count" );
+        return false;
+      }
+
       nn::gfx::BufferInfo matrixInfo;
       matrixInfo.SetDefault();
       matrixInfo.SetGpuAccessFlags( nn::gfx::GpuAccess_ConstantBuffer );
@@ -932,6 +975,7 @@ namespace wishbone::mii
 
         auto * constants = modulateBuffers[ i ].Map<ConstantBufferModulate>();
         *constants       = {};
+        constants->facePaintPass = drawType == nn::mii::CharModel::DrawType_Faceline ? 1 : 0;
 
         if ( drawParam != nullptr )
         {
@@ -953,7 +997,58 @@ namespace wishbone::mii
         modulateBuffers[ i ].Unmap();
       }
 
+      nn::gfx::BufferInfo facePaintInfo;
+      facePaintInfo.SetDefault();
+      facePaintInfo.SetGpuAccessFlags( nn::gfx::GpuAccess_ConstantBuffer );
+      facePaintInfo.SetSize( sizeof( ConstantBufferFacePaint ) );
+
+      const size_t facePaintAlignment = nn::gfx::Buffer::GetBufferAlignment( device, facePaintInfo );
+
+      for ( int i = 0; i < frameCount; ++i )
+      {
+        facePaintBufferOffsets[ i ] = graphics->AllocatePoolMemory(
+          Framework::MemoryPoolType_ConstantBuffer, facePaintInfo.GetSize(), facePaintAlignment );
+
+        if ( facePaintBufferOffsets[ i ] < 0 )
+        {
+          SetError( "Allocate face paint constant buffer" );
+          return false;
+        }
+
+        facePaintBuffers[ i ].Initialize( device,
+                                          facePaintInfo,
+                                          graphics->GetMemoryPool( Framework::MemoryPoolType_ConstantBuffer ),
+                                          facePaintBufferOffsets[ i ],
+                                          facePaintInfo.GetSize() );
+        ++facePaintBufferCount;
+      }
+
       return true;
+    }
+
+    void UpdateFacePaintBuffer( int frameIndex, const FacePaintSettings & facePaint )
+    {
+      auto * constants = facePaintBuffers[ frameIndex ].Map<ConstantBufferFacePaint>();
+      *constants       = {};
+
+      constants->color.x = facePaint.color[ 0 ];
+      constants->color.y = facePaint.color[ 1 ];
+      constants->color.z = facePaint.color[ 2 ];
+      constants->color.w = facePaint.color[ 3 ];
+
+      constants->transform.x = facePaint.position[ 0 ];
+      constants->transform.y = facePaint.position[ 1 ];
+      constants->transform.z = facePaint.scale[ 0 ];
+      constants->transform.w = facePaint.scale[ 1 ];
+
+      constexpr float DegreesToRadians = 3.14159265f / 180.0f;
+      const float     radians          = facePaint.rotation * DegreesToRadians;
+
+      constants->settings.x = std::cos( radians );
+      constants->settings.y = std::sin( radians );
+      constants->settings.z = facePaint.enabled ? 1.0f : 0.0f;
+
+      facePaintBuffers[ frameIndex ].Unmap();
     }
 
     void DrawByParam( nn::gfx::CommandBuffer * commands, const nn::mii::DrawParam & drawParam )
@@ -985,12 +1080,16 @@ namespace wishbone::mii
         nn::mii::DrawParam::PrimitiveTopology, nn::mii::DrawParam::IndexFormat, address, drawParam.GetIndexCount(), 0 );
     }
 
-    void Draw( nn::gfx::CommandBuffer * commands )
+    void Draw( nn::gfx::CommandBuffer * commands,
+               int                      frameIndex,
+               const FacePaintSettings & facePaint )
     {
-      if ( !ready )
+      if ( !ready || frameIndex < 0 || frameIndex >= facePaintBufferCount )
       {
         return;
       }
+
+      UpdateFacePaintBuffer( frameIndex, facePaint );
 
       commands->InvalidateMemory( nn::gfx::GpuAccess_Texture | nn::gfx::GpuAccess_IndexBuffer |
                                   nn::gfx::GpuAccess_ConstantBuffer | nn::gfx::GpuAccess_VertexBuffer );
@@ -1018,6 +1117,10 @@ namespace wishbone::mii
         commands->SetDepthStencilState( &depthStates[ mode ] );
         commands->SetVertexState( &vertexState );
         commands->SetShader( shader, nn::gfx::ShaderStageBit_All );
+        commands->SetTextureAndSampler( facePaintSamplerSlot,
+                                        nn::gfx::ShaderStage_Pixel,
+                                        facePaintCanvas.GetTextureDescriptorSlot(),
+                                        samplerSlot );
 
         nn::gfx::GpuAddress address;
         matrixBuffer.GetGpuAddress( &address );
@@ -1026,6 +1129,10 @@ namespace wishbone::mii
         modulateBuffers[ i ].GetGpuAddress( &address );
         commands->SetConstantBuffer(
           modulateSlot, nn::gfx::ShaderStage_Pixel, address, sizeof( ConstantBufferModulate ) );
+
+        facePaintBuffers[ frameIndex ].GetGpuAddress( &address );
+        commands->SetConstantBuffer(
+          facePaintSlot, nn::gfx::ShaderStage_Pixel, address, sizeof( ConstantBufferFacePaint ) );
 
         DrawByParam( commands, *drawParam );
       }
@@ -1054,6 +1161,15 @@ namespace wishbone::mii
 
       ready = false;
 
+      for ( int i = facePaintBufferCount - 1; i >= 0; --i )
+      {
+        facePaintBuffers[ i ].Finalize( device );
+        graphics->FreePoolMemory( Framework::MemoryPoolType_ConstantBuffer, facePaintBufferOffsets[ i ] );
+        facePaintBufferOffsets[ i ] = -1;
+      }
+
+      facePaintBufferCount = 0;
+
       for ( int i = modulateBufferCount - 1; i >= 0; --i )
       {
         modulateBuffers[ i ].Finalize( device );
@@ -1061,6 +1177,8 @@ namespace wishbone::mii
       }
 
       modulateBufferCount = 0;
+
+      facePaintCanvas.Finalize();
 
       if ( matrixBufferInitialized )
       {
@@ -1239,7 +1357,8 @@ namespace wishbone::mii
 
   bool FixedModelRenderer::Initialize( nns::gfx::GraphicsFramework & graphics,
                                        const RenderResources &       resources,
-                                       const nn::mii::CharInfo &     charInfo )
+                                       const nn::mii::CharInfo &     charInfo,
+                                       int                           frameCount )
   {
     Finalize();
 
@@ -1247,6 +1366,7 @@ namespace wishbone::mii
     NN_UNUSED( graphics );
     NN_UNUSED( resources );
     NN_UNUSED( charInfo );
+    NN_UNUSED( frameCount );
     return false;
 #else
     m_Impl = new ( std::nothrow ) Impl();
@@ -1270,8 +1390,9 @@ namespace wishbone::mii
     const bool initialized =
       m_Impl->LoadShaders() && m_Impl->InitializeTextureShader() && m_Impl->InitializeCharModel( resource, charInfo ) &&
       m_Impl->InitializeFaceline( resource, charInfo ) && m_Impl->InitializeMask( resource, charInfo ) &&
-      m_Impl->BindDescriptors() && m_Impl->InitializeGenerationBuffers() && m_Impl->GenerateFaceTextures() &&
-      m_Impl->InitializeRenderStates() && m_Impl->InitializeConstantBuffers();
+      m_Impl->BindDescriptors() && m_Impl->InitializeFacePaintCanvas() &&
+      m_Impl->InitializeGenerationBuffers() && m_Impl->GenerateFaceTextures() && m_Impl->InitializeRenderStates() &&
+      m_Impl->InitializeConstantBuffers( frameCount );
 
     if ( !initialized )
     {
@@ -1294,17 +1415,22 @@ namespace wishbone::mii
     }
   }
 
-  void FixedModelRenderer::Draw( nn::gfx::CommandBuffer * commands )
+  void FixedModelRenderer::Draw( nn::gfx::CommandBuffer * commands, int frameIndex )
   {
     if ( m_Impl != nullptr )
     {
-      m_Impl->Draw( commands );
+      m_Impl->Draw( commands, frameIndex, m_FacePaintSettings );
     }
   }
 
   bool FixedModelRenderer::SetExpression( nn::mii::Expression expression )
   {
     return m_Impl != nullptr && m_Impl->SetExpression( expression );
+  }
+
+  void FixedModelRenderer::SetFacePaintSettings( const FacePaintSettings & settings )
+  {
+    m_FacePaintSettings = settings;
   }
 
   bool FixedModelRenderer::IsSupported() const
@@ -1339,6 +1465,11 @@ namespace wishbone::mii
   int FixedModelRenderer::GetExpressionMaskSlot() const
   {
     return m_Impl != nullptr ? m_Impl->activeMaskSlot : 0;
+  }
+
+  const FacePaintSettings & FixedModelRenderer::GetFacePaintSettings() const
+  {
+    return m_FacePaintSettings;
   }
 
   const char * FixedModelRenderer::GetErrorOperation() const

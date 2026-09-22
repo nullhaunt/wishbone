@@ -46,10 +46,20 @@ layout( location = 0 ) out vec4 o_Color;
 layout( std140 ) uniform u_Modulate
 {
   int modulateType;
+  int facePaintPass;
+  ivec2 modulatePadding;
   vec3 constantColor[ 3 ];
 };
 
+layout( std140 ) uniform u_FacePaint
+{
+  vec4 facePaintColor;
+  vec4 facePaintTransform;
+  vec4 facePaintSettings;
+};
+
 uniform sampler2D s_Texture;
+uniform sampler2D s_FacePaint;
 
 in VertexOutput
 {
@@ -96,9 +106,40 @@ vec4 CalculateAlbedo()
   return vec4( 1.0 );
 }
 
+vec4 ApplyFacePaint( vec4 albedo )
+{
+  if ( facePaintPass == 0 || facePaintSettings.z < 0.5 )
+  {
+    return albedo;
+  }
+
+  vec2 position = facePaintTransform.xy;
+  vec2 scale = max( facePaintTransform.zw, vec2( 0.001 ) );
+  vec2 offset = In.texCoord - position;
+
+  float rotationCos = facePaintSettings.x;
+  float rotationSin = facePaintSettings.y;
+  vec2 rotatedOffset = vec2(
+    rotationCos * offset.x + rotationSin * offset.y,
+    -rotationSin * offset.x + rotationCos * offset.y );
+  vec2 paintTexCoord = rotatedOffset / scale + vec2( 0.5 );
+
+  if ( any( lessThan( paintTexCoord, vec2( 0.0 ) ) ) ||
+       any( greaterThan( paintTexCoord, vec2( 1.0 ) ) ) )
+  {
+    return albedo;
+  }
+
+  vec4 paint = texture( s_FacePaint, paintTexCoord );
+  paint.rgb *= facePaintColor.rgb;
+  paint.a *= facePaintColor.a;
+
+  return vec4( mix( albedo.rgb, paint.rgb, paint.a ), albedo.a );
+}
+
 void main()
 {
-  vec4 albedo = CalculateAlbedo();
+  vec4 albedo = ApplyFacePaint( CalculateAlbedo() );
 
   if ( albedo.a == 0.0 )
   {

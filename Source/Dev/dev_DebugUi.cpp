@@ -149,4 +149,9 @@ namespace wishbone::dev
   {
     return m_MiiLab.GetSelectedExpression();
   }
+
+  const wishbone::mii::FacePaintSettings & DebugUi::GetFacePaintSettings() const
+  {
+    return m_MiiLab.GetFacePaintSettings();
+  }
 } // namespace wishbone::dev

@@ -81,7 +81,7 @@ namespace wishbone::app
 
         if ( m_MiiCatalog.GetCount() > 0 )
         {
-          m_FixedModelRenderer.Initialize( m_Graphics, m_MiiRenderResources, m_MiiCatalog.GetEntry( 0 ).m_CharInfo );
+          m_FixedModelRenderer.Initialize( m_Graphics, m_MiiRenderResources, m_MiiCatalog.GetEntry( 0 ).m_CharInfo, BufferCount );
           m_RenderedMii = 0;
         }
 
@@ -107,11 +107,12 @@ namespace wishbone::app
             // The submitted frame can still reference the old model's buffers.
             m_Graphics.QueueFinish();
             m_FixedModelRenderer.Initialize(
-              m_Graphics, m_MiiRenderResources, m_MiiCatalog.GetEntry( selectedMii ).m_CharInfo );
+              m_Graphics, m_MiiRenderResources, m_MiiCatalog.GetEntry( selectedMii ).m_CharInfo, BufferCount );
             m_RenderedMii = selectedMii;
           }
 
           m_FixedModelRenderer.SetExpression( selectedExpression );
+          m_FixedModelRenderer.SetFacePaintSettings( m_DebugUi.GetFacePaintSettings() );
         }
       }
 
@@ -165,7 +166,7 @@ namespace wishbone::app
         commands->ClearDepthStencil( depth, 1.0f, 0, nn::gfx::DepthStencilClearMode_DepthStencil, nullptr );
         commands->SetRenderTargets( 1, &target, depth );
 
-        application.m_FixedModelRenderer.Draw( commands );
+        application.m_FixedModelRenderer.Draw( commands, bufferIndex );
 
         application.m_DebugUi.Render( commands );
 

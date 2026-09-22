@@ -39,6 +39,7 @@
     <ClCompile Include="Source\Dev\dev_DebugUi.cpp" />
     <ClCompile Include="Source\Dev\dev_MiiLab.cpp" />
     <ClCompile Include="Source\Mii\mii_Catalog.cpp" />
+    <ClCompile Include="Source\Mii\mii_FacePaintCanvas.cpp" />
     <ClCompile Include="Source\Mii\mii_FixedModelRenderer.cpp" />
     <ClCompile Include="Source\Mii\mii_RenderResources.cpp" />
     <ClInclude Include="Source\App\app_Application.hpp" />
@@ -46,6 +47,7 @@
     <ClInclude Include="Source\Dev\dev_DebugUi.hpp" />
     <ClInclude Include="Source\Dev\dev_MiiLab.hpp" />
     <ClInclude Include="Source\Mii\mii_Catalog.hpp" />
+    <ClInclude Include="Source\Mii\mii_FacePaintCanvas.hpp" />
     <ClInclude Include="Source\Mii\mii_FixedModelRenderer.hpp" />
     <ClInclude Include="Source\Mii\mii_RenderResources.hpp" />
   </ItemGroup>

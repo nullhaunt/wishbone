@@ -5,7 +5,8 @@ its bundled Dear ImGui 1.87. It provides a small input test panel, a read-only
 system Mii browser, and a fixed-model rendering checkpoint. The renderer builds
 the first valid catalog entry with the SDK Mii draw library, generates its
 faceline and all 19 SDK expression masks, and draws the model with depth before
-the development UI.
+the development UI. A Wishbone-owned RGBA canvas adds a transformable face-paint
+layer without changing the imported system Mii data.
 
 ## Build
 
@@ -80,9 +81,17 @@ For the fixed-Mii checkpoint:
 4. Cycle all entries in the **Expression** combo and confirm the eyes, eyebrows,
    and mouth match the label. Expression changes should be immediate and should
    not rebuild the selected Mii; changing Miis should preserve the expression.
-5. Change the background color and look for missing transparency, incorrect
+5. In **Face paint proof**, confirm the cyan dot and pink arrow appear on the
+   face. Toggle the layer and change its color, opacity, position, scale, and
+   rotation. Use the asymmetric pattern to check horizontal and vertical
+   orientation, then move it across the cheeks, chin, brow, and forehead to
+   expose UV seams or unsupported regions.
+6. Change Miis and expressions while the paint is visible. The paint should
+   remain anchored to the face, persist across both changes, and stay behind
+   the SDK-rendered eyes, eyebrows, and mouth.
+7. Change the background color and look for missing transparency, incorrect
    draw order, or depth artifacts around hair, glasses, and facial features.
-6. Exit normally and confirm there is no graphics or allocator assertion.
+8. Exit normally and confirm there is no graphics or allocator assertion.
 
 Startup reports `[Wishbone] ImGui ready.`; normal exit reports
 `[Wishbone] Development UI shut down.` in logging-enabled configurations.
@@ -91,4 +100,6 @@ Validation on 2026-09-21: NX64 Debug/Develop/Release and x64 Develop builds pass
 including Mii shader generation and NX application-data packaging.
 The local Windows startup check stops at NVN device initialization
 (`devInit must not be nullptr`); this machine has an AMD Radeon RX 7900 XT.
-Fixed-Mii rendering and its shutdown path remain unverified on hardware.
+Owner hardware validation confirms Mii selection and all-expression preview.
+Face-paint rendering and the known shutdown assertion remain pending hardware
+validation.
