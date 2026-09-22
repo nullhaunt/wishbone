@@ -1,8 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <NintendoSdkContentDirectory Condition="'$(NintendoSdkContentDirectory)'==''">$(OutDir)..\Contents\$(NintendoSdkSpec)\</NintendoSdkContentDirectory>
+    <ApplicationDataDir Condition="'$(Platform)'=='NX64'">$(NintendoSdkContentDirectory)</ApplicationDataDir>
+    <WishboneMiiContentDir>$(NintendoSdkContentDirectory)\Wishbone\Mii</WishboneMiiContentDir>
+    <WishboneMiiTextureShader>$(NintendoSdkRoot)Resources\Mii\$(NintendoSdkBuildTarget)\shader\TextureShader.bnsh</WishboneMiiTextureShader>
+    <WishboneMiiModelShader>$(WishboneMiiContentDir)\MiiModel.bnsh</WishboneMiiModelShader>
+    <WishboneMiiShaderCodeType Condition="'$(Platform)'=='NX64'">Binary</WishboneMiiShaderCodeType>
+    <WishboneMiiShaderCodeType Condition="'$(Platform)'=='x64'">Binary_Ir</WishboneMiiShaderCodeType>
+  </PropertyGroup>
   <ItemDefinitionGroup>
     <Link>
       <AdditionalDependencies>libnn_mii_draw$(NintendoSdkLibSuffix);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
+  <Target Name="PrepareWishboneMiiContent" BeforeTargets="PrepareForBuild">
+    <Error Condition="!Exists('$(WishboneMiiTextureShader)')" Text="The Mii texture shader is missing: $(WishboneMiiTextureShader)" />
+    <MakeDir Directories="$(WishboneMiiContentDir)" />
+    <Copy SourceFiles="$(WishboneMiiTextureShader)" DestinationFiles="$(WishboneMiiContentDir)\TextureShader.bnsh" SkipUnchangedFiles="true" />
+  </Target>
+  <Target Name="BuildWishboneMiiModelShader"
+          BeforeTargets="PrepareForBuild"
+          DependsOnTargets="PrepareWishboneMiiContent"
+          Inputs="$(ProjectDir)Resources\Mii\MiiModel.glsl;$(ProjectDir)Resources\Mii\MiiModel.xml"
+          Outputs="$(WishboneMiiModelShader)">
+    <Exec Command="&quot;$(NintendoSdkRoot)Tools\Graphics\GraphicsTools\ShaderConverter.exe&quot; -o &quot;$(WishboneMiiModelShader)&quot; -s Glsl -c $(WishboneMiiShaderCodeType) -a Nvn --vertex-shader &quot;$(ProjectDir)Resources\Mii\MiiModel.glsl&quot; --pixel-shader &quot;$(ProjectDir)Resources\Mii\MiiModel.glsl&quot; --variation &quot;$(ProjectDir)Resources\Mii\MiiModel.xml&quot; --glsl-version 450 --separable --reflection" />
+  </Target>
 </Project>

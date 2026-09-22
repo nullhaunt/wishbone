@@ -1,9 +1,11 @@
 # Wishbone
 
-The initial development harness uses the official Nintendo SDK 18.3.1 NVN
-backend and its bundled Dear ImGui 1.87. It provides a small input test panel,
-the ImGui demo, and metrics. This is the foundation for the Mii feasibility
-tools; Mii editing and rendering are not implemented yet.
+The development harness uses the official Nintendo SDK 18.3.1 NVN backend and
+its bundled Dear ImGui 1.87. It provides a small input test panel, a read-only
+system Mii browser, and a fixed-model rendering checkpoint. The renderer builds
+the first valid catalog entry with the SDK Mii draw library, generates its
+faceline and normal-expression mask, and draws the model with depth before the
+development UI.
 
 ## Build
 
@@ -27,6 +29,13 @@ sources directly into Wishbone's local build directory. It references the SDK's
 generated shader headers and leaves the SDK installation unchanged. Keep these
 sources, headers, and libraries on the same SDK version. The graphics framework
 is sample infrastructure for this harness, not a completed engine renderer.
+
+`SdkMii.props` copies the matching SDK `TextureShader.bnsh` and compiles
+`Resources/Mii/MiiModel.glsl` into the application content directory. The NX
+package exposes both as `Contents:/Wishbone/Mii/*`. The fixed renderer owns its
+Mii objects, GPU allocations, descriptors, generated textures, render states,
+and teardown; application code only supplies the first catalog entry and calls
+the renderer before ImGui.
 
 ## Input
 
@@ -61,10 +70,23 @@ Build success alone does not verify rendering or device input. On the devkit:
 5. Check mouse/keyboard, touch, and controller disconnect/reconnect as available.
 6. Select **Exit Wishbone** and verify clean shutdown without a GPU/assertion error.
 
+For the fixed-Mii checkpoint:
+
+1. Confirm a Mii head appears behind the development UI with correct hair,
+   skin, eyes, mouth, and facial details.
+2. Open **Mii Lab** and confirm `Fixed Mii renderer: ready`.
+3. Confirm the rendered Mii is catalog entry 0 and remains on the normal
+   expression while selecting other browser rows. Browser-to-renderer wiring is
+   intentionally reserved for the next commit.
+4. Change the background color and look for missing transparency, incorrect
+   draw order, or depth artifacts around hair, glasses, and facial features.
+5. Exit normally and confirm there is no graphics or allocator assertion.
+
 Startup reports `[Wishbone] ImGui ready.`; normal exit reports
 `[Wishbone] Development UI shut down.` in logging-enabled configurations.
 
-Validation on 2026-09-21: NX64 Debug/Develop/Release and x64 Develop builds pass.
+Validation on 2026-09-21: NX64 Debug/Develop/Release and x64 Develop builds pass,
+including Mii shader generation and NX application-data packaging.
 The local Windows startup check stops at NVN device initialization
 (`devInit must not be nullptr`); this machine has an AMD Radeon RX 7900 XT.
-Rendering, interactive input, and normal shutdown remain unverified on hardware.
+Fixed-Mii rendering and its shutdown path remain unverified on hardware.

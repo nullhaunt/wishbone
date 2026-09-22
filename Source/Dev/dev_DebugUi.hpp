@@ -18,6 +18,7 @@ namespace nns::gfx
 namespace wishbone::mii
 {
   class Catalog;
+  class FixedModelRenderer;
   class RenderResources;
 } // namespace wishbone::mii
 
@@ -30,7 +31,9 @@ namespace wishbone::dev
     void Finalize( nns::gfx::GraphicsFramework & graphics );
 
     void UpdateInput( nn::vi::Layer * layer );
-    void BuildFrame( wishbone::mii::Catalog & catalog, const wishbone::mii::RenderResources & renderResources );
+    void BuildFrame( wishbone::mii::Catalog &                  catalog,
+                     const wishbone::mii::RenderResources &    renderResources,
+                     const wishbone::mii::FixedModelRenderer & fixedModelRenderer );
     void Render( nn::gfx::CommandBuffer * commands );
 
     const float * GetClearColor() const;

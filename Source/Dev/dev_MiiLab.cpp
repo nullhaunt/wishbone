@@ -1,6 +1,7 @@
 #include "Dev/dev_MiiLab.hpp"
 
 #include "Mii/mii_Catalog.hpp"
+#include "Mii/mii_FixedModelRenderer.hpp"
 #include "Mii/mii_RenderResources.hpp"
 
 #include <imgui.h>
@@ -9,7 +10,9 @@
 
 namespace wishbone::dev
 {
-  void MiiLab::Build( wishbone::mii::Catalog & catalog, const wishbone::mii::RenderResources & renderResources )
+  void MiiLab::Build( wishbone::mii::Catalog &                  catalog,
+                      const wishbone::mii::RenderResources &    renderResources,
+                      const wishbone::mii::FixedModelRenderer & fixedModelRenderer )
   {
     if ( !m_IsVisible )
     {
@@ -52,6 +55,34 @@ namespace wishbone::dev
         else
         {
           ImGui::TextWrapped( "%s failed.", renderResources.GetErrorOperation() );
+        }
+      }
+
+      ImGui::Separator();
+
+      if ( fixedModelRenderer.IsReady() )
+      {
+        ImGui::TextColored( ImVec4( 0.35f, 0.9f, 0.45f, 1.0f ), "Fixed Mii renderer: ready" );
+        ImGui::TextDisabled( "Rendering catalog entry 0 with the normal expression." );
+      }
+      else if ( !fixedModelRenderer.IsSupported() )
+      {
+        ImGui::TextDisabled( "Fixed Mii renderer: NX hardware only" );
+      }
+      else if ( fixedModelRenderer.HasError() )
+      {
+        ImGui::TextColored( ImVec4( 1.0f, 0.35f, 0.3f, 1.0f ), "Fixed Mii renderer: failed" );
+
+        if ( fixedModelRenderer.HasResultCode() )
+        {
+          ImGui::TextWrapped( "%s failed (%d-%d)",
+                              fixedModelRenderer.GetErrorOperation(),
+                              fixedModelRenderer.GetErrorModule(),
+                              fixedModelRenderer.GetErrorDescription() );
+        }
+        else
+        {
+          ImGui::TextWrapped( "%s failed.", fixedModelRenderer.GetErrorOperation() );
         }
       }
 

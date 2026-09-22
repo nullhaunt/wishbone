@@ -2,6 +2,7 @@
 
 #include "Dev/dev_DebugUi.hpp"
 #include "Mii/mii_Catalog.hpp"
+#include "Mii/mii_FixedModelRenderer.hpp"
 #include "Mii/mii_RenderResources.hpp"
 
 #include <nn/nn_Log.h>
@@ -33,13 +34,17 @@ namespace wishbone::app
       info.SetDisplayHeight( DisplayHeight );
       info.SetSwapChainFormat( nn::gfx::ImageFormat_R8_G8_B8_A8_UnormSrgb );
       info.SetColorBufferFormat( nn::gfx::ImageFormat_R8_G8_B8_A8_UnormSrgb );
-      info.SetDepthStencilBufferEnabled( false );
+      info.SetDepthStencilBufferEnabled( true );
+      info.SetDepthStencilBufferFormat( nn::gfx::ImageFormat_D24_Unorm_S8_Uint );
       info.SetBufferCount( BufferCount );
       info.SetSwapChainBufferCount( BufferCount );
 
       info.SetRootCommandBufferCommandMemorySize( 1024 * 1024 );
-      info.SetMemoryPoolSize( Framework::MemoryPoolType_CommandBuffer, 4 * 1024 * 1024 );
-      info.SetMemoryPoolSize( Framework::MemoryPoolType_ConstantBuffer, 1024 * 1024 );
+      info.SetMemoryPoolSize( Framework::MemoryPoolType_CommandBuffer, 6 * 1024 * 1024 );
+      info.SetMemoryPoolSize( Framework::MemoryPoolType_RenderTarget, 32 * 1024 * 1024 );
+      info.SetMemoryPoolSize( Framework::MemoryPoolType_ConstantBuffer, 32 * 1024 * 1024 );
+      info.SetMemoryPoolSize( Framework::MemoryPoolType_Data, 32 * 1024 * 1024 );
+      info.SetMemoryPoolSize( Framework::MemoryPoolType_Others, 32 * 1024 * 1024 );
 
       info.SetDescriptorPoolSlotCount( nn::gfx::DescriptorPoolType_BufferView, 16 );
       info.SetDescriptorPoolSlotCount( nn::gfx::DescriptorPoolType_TextureView, 1024 );
@@ -67,6 +72,13 @@ namespace wishbone::app
         InitializeGraphics( m_Graphics );
         m_MiiRenderResources.Initialize( m_Graphics.GetDevice() );
         m_MiiCatalog.Initialize();
+
+        if ( m_MiiCatalog.GetCount() > 0 )
+        {
+          m_FixedModelRenderer.Initialize(
+            m_Graphics, m_MiiRenderResources, m_MiiCatalog.GetEntry( 0 ).m_CharInfo );
+        }
+
         m_DebugUi.Initialize( m_Graphics );
 
         m_Graphics.SetCalculateCallback( Calculate, this );
@@ -83,6 +95,7 @@ namespace wishbone::app
         // The final frame still references the UI's GPU buffers and descriptors.
         m_Graphics.QueueFinish();
         m_DebugUi.Finalize( m_Graphics );
+        m_FixedModelRenderer.Finalize();
         m_MiiCatalog.Finalize();
         m_MiiRenderResources.Finalize();
         m_Graphics.Finalize();
@@ -94,7 +107,8 @@ namespace wishbone::app
       static void Calculate( nns::gfx::GraphicsFramework *, void * userData )
       {
         auto & application = *static_cast<Application *>( userData );
-        application.m_DebugUi.BuildFrame( application.m_MiiCatalog, application.m_MiiRenderResources );
+        application.m_DebugUi.BuildFrame(
+          application.m_MiiCatalog, application.m_MiiRenderResources, application.m_FixedModelRenderer );
       }
 
       static void Render( nns::gfx::GraphicsFramework * graphics, int bufferIndex, void * userData )
@@ -105,10 +119,15 @@ namespace wishbone::app
 
         auto *       commands   = graphics->GetRootCommandBuffer( bufferIndex );
         auto *       target     = graphics->GetColorTargetView();
+        auto *       depth      = graphics->GetDepthStencilView();
         const auto * clearColor = application.m_DebugUi.GetClearColor();
 
         commands->ClearColor( target, clearColor[ 0 ], clearColor[ 1 ], clearColor[ 2 ], 1.0f, nullptr );
-        commands->SetRenderTargets( 1, &target, nullptr );
+        commands->ClearDepthStencil(
+          depth, 1.0f, 0, nn::gfx::DepthStencilClearMode_DepthStencil, nullptr );
+        commands->SetRenderTargets( 1, &target, depth );
+
+        application.m_FixedModelRenderer.Draw( commands );
 
         application.m_DebugUi.Render( commands );
 
@@ -119,6 +138,7 @@ namespace wishbone::app
       nns::gfx::GraphicsFramework m_Graphics;
       mii::RenderResources        m_MiiRenderResources;
       mii::Catalog                m_MiiCatalog;
+      mii::FixedModelRenderer     m_FixedModelRenderer;
       dev::DebugUi                m_DebugUi;
     };
   } // namespace
